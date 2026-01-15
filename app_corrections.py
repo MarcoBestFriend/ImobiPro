@@ -1,34 +1,22 @@
 """
-ImobiPro - Sistema de Gestão Imobiliária
-Arquivo principal da aplicação Flask
+Correções para o arquivo app.py do ImobiPro
+Este arquivo contém as rotas que devem ser adicionadas ou corrigidas no app.py
 """
 
-from flask import Flask, render_template, request, redirect, url_for, flash
+# ============================================================================
+# ROTAS DE IMÓVEIS - Adicionar/Corrigir no app.py
+# ============================================================================
+
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from database.db_manager import DatabaseManager
 import os
 
-# Inicializa a aplicação Flask
+# Inicialização (deve estar no início do app.py)
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-imobipro-2026')
-app.config['DEBUG'] = True  # Ativa modo debug para ver erros detalhados
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
-# Cria instância do gerenciador de banco de dados
+# Instância do gerenciador de banco
 db = DatabaseManager()
-
-# ============================================================================
-# ROTA PRINCIPAL
-# ============================================================================
-
-@app.route('/')
-def index():
-    """Página inicial com dashboard"""
-    try:
-        # Busca estatísticas gerais
-        stats = db.obter_estatisticas()
-        return render_template('index.html', stats=stats)
-    except Exception as e:
-        flash(f'Erro ao carregar dashboard: {str(e)}', 'danger')
-        return render_template('index.html', stats={})
 
 # ============================================================================
 # ROTAS DE IMÓVEIS
@@ -62,18 +50,15 @@ def imoveis_novo():
                 'quartos': int(request.form.get('quartos', 0)),
                 'banheiros': int(request.form.get('banheiros', 0)),
                 'vagas': int(request.form.get('vagas', 0)),
-                'area_total': float(request.form.get('area_total')) if request.form.get('area_total') else None,
-                'valor_compra': float(request.form.get('valor_compra')) if request.form.get('valor_compra') else None,
-                'valor_atual': float(request.form.get('valor_atual')) if request.form.get('valor_atual') else None,
-                'iptu_anual': float(request.form.get('iptu_anual')) if request.form.get('iptu_anual') else None,
+                'area_total': float(request.form.get('area_total', 0)) if request.form.get('area_total') else None,
+                'valor_compra': float(request.form.get('valor_compra', 0)) if request.form.get('valor_compra') else None,
+                'valor_atual': float(request.form.get('valor_atual', 0)) if request.form.get('valor_atual') else None,
+                'iptu_anual': float(request.form.get('iptu_anual', 0)) if request.form.get('iptu_anual') else None,
                 'matricula': request.form.get('matricula'),
                 'inscricao_municipal': request.form.get('inscricao_municipal'),
                 'status': request.form.get('status', 'disponivel'),
                 'observacoes': request.form.get('observacoes')
             }
-            
-            # Remove valores None
-            dados_imovel = {k: v for k, v in dados_imovel.items() if v is not None and v != ''}
             
             # Insere no banco
             imovel_id = db.inserir_imovel(**dados_imovel)
@@ -106,18 +91,15 @@ def imoveis_editar(id):
                 'quartos': int(request.form.get('quartos', 0)),
                 'banheiros': int(request.form.get('banheiros', 0)),
                 'vagas': int(request.form.get('vagas', 0)),
-                'area_total': float(request.form.get('area_total')) if request.form.get('area_total') else None,
-                'valor_compra': float(request.form.get('valor_compra')) if request.form.get('valor_compra') else None,
-                'valor_atual': float(request.form.get('valor_atual')) if request.form.get('valor_atual') else None,
-                'iptu_anual': float(request.form.get('iptu_anual')) if request.form.get('iptu_anual') else None,
+                'area_total': float(request.form.get('area_total', 0)) if request.form.get('area_total') else None,
+                'valor_compra': float(request.form.get('valor_compra', 0)) if request.form.get('valor_compra') else None,
+                'valor_atual': float(request.form.get('valor_atual', 0)) if request.form.get('valor_atual') else None,
+                'iptu_anual': float(request.form.get('iptu_anual', 0)) if request.form.get('iptu_anual') else None,
                 'matricula': request.form.get('matricula'),
                 'inscricao_municipal': request.form.get('inscricao_municipal'),
                 'status': request.form.get('status'),
                 'observacoes': request.form.get('observacoes')
             }
-            
-            # Remove valores vazios
-            dados_imovel = {k: v for k, v in dados_imovel.items() if v != ''}
             
             # Atualiza no banco
             db.atualizar_imovel(id, **dados_imovel)
@@ -177,15 +159,11 @@ def contratos_novo():
                 'data_fim': request.form.get('data_fim'),
                 'valor_aluguel': float(request.form.get('valor_aluguel')),
                 'dia_vencimento': int(request.form.get('dia_vencimento')),
-                'taxa_administracao': float(request.form.get('taxa_administracao')) if request.form.get('taxa_administracao') else None,
+                'taxa_administracao': float(request.form.get('taxa_administracao', 0)) if request.form.get('taxa_administracao') else None,
                 'indice_reajuste': request.form.get('indice_reajuste'),
                 'periodicidade_reajuste': int(request.form.get('periodicidade_reajuste', 12)),
-                'status': 'ativo',
                 'observacoes': request.form.get('observacoes')
             }
-            
-            # Remove valores None
-            dados_contrato = {k: v for k, v in dados_contrato.items() if v is not None}
             
             # Insere no banco
             contrato_id = db.inserir_contrato(**dados_contrato)
@@ -198,16 +176,10 @@ def contratos_novo():
             
         except Exception as e:
             flash(f'Erro ao cadastrar contrato: {str(e)}', 'danger')
-            # Recarrega dados para o formulário
-            try:
-                imoveis = db.listar_imoveis_disponiveis()
-                pessoas = db.listar_pessoas()
-                return render_template('contratos/form.html', 
-                                     contrato=None, 
-                                     imoveis=imoveis,
-                                     pessoas=pessoas)
-            except:
-                return redirect(url_for('contratos'))
+            return render_template('contratos/form.html', 
+                                 contrato=None, 
+                                 imoveis=db.listar_imoveis_disponiveis(),
+                                 pessoas=db.listar_pessoas())
     
     # GET - Exibe formulário vazio com dados auxiliares
     try:
@@ -235,15 +207,12 @@ def contratos_editar(id):
                 'data_fim': request.form.get('data_fim'),
                 'valor_aluguel': float(request.form.get('valor_aluguel')),
                 'dia_vencimento': int(request.form.get('dia_vencimento')),
-                'taxa_administracao': float(request.form.get('taxa_administracao')) if request.form.get('taxa_administracao') else None,
+                'taxa_administracao': float(request.form.get('taxa_administracao', 0)) if request.form.get('taxa_administracao') else None,
                 'indice_reajuste': request.form.get('indice_reajuste'),
                 'periodicidade_reajuste': int(request.form.get('periodicidade_reajuste', 12)),
                 'status': request.form.get('status'),
                 'observacoes': request.form.get('observacoes')
             }
-            
-            # Remove valores vazios
-            dados_contrato = {k: v for k, v in dados_contrato.items() if v != ''}
             
             # Atualiza no banco
             db.atualizar_contrato(id, **dados_contrato)
@@ -293,15 +262,112 @@ def contratos_encerrar(id):
     return redirect(url_for('contratos'))
 
 # ============================================================================
-# EXECUÇÃO DA APLICAÇÃO
+# MÉTODOS AUXILIARES PARA O DatabaseManager
 # ============================================================================
 
-if __name__ == '__main__':
-    print("\n" + "="*70)
-    print("🏠 IMOBIPRO - Sistema de Gestão Imobiliária")
-    print("="*70)
-    print("\n✓ Servidor iniciado com sucesso!")
-    print("✓ Acesse: http://localhost:5000")
-    print("✓ Pressione Ctrl+C para parar o servidor\n")
+"""
+Adicione estes métodos na classe DatabaseManager em database/db_manager.py:
+
+def listar_imoveis_disponiveis(self):
+    '''Retorna lista de imóveis disponíveis para locação'''
+    query = '''
+        SELECT * FROM imoveis 
+        WHERE status = 'disponivel' 
+        ORDER BY cidade, bairro, endereco
+    '''
+    return self.executar_query(query)
+
+def buscar_imovel(self, imovel_id):
+    '''Retorna os dados de um imóvel específico'''
+    query = 'SELECT * FROM imoveis WHERE id = ?'
+    resultado = self.executar_query(query, (imovel_id,))
+    return resultado[0] if resultado else None
+
+def atualizar_imovel(self, imovel_id, **kwargs):
+    '''Atualiza os dados de um imóvel'''
+    campos = []
+    valores = []
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    for campo, valor in kwargs.items():
+        if valor is not None:
+            campos.append(f'{campo} = ?')
+            valores.append(valor)
+    
+    if not campos:
+        return
+    
+    valores.append(imovel_id)
+    query = f'UPDATE imoveis SET {", ".join(campos)} WHERE id = ?'
+    
+    self.executar_query(query, tuple(valores), commit=True)
+
+def excluir_imovel(self, imovel_id):
+    '''Exclui um imóvel (se não tiver contratos ativos)'''
+    # Verifica se há contratos ativos
+    query = 'SELECT COUNT(*) as total FROM contratos WHERE imovel_id = ? AND status = "ativo"'
+    resultado = self.executar_query(query, (imovel_id,))
+    
+    if resultado[0]['total'] > 0:
+        raise Exception('Não é possível excluir imóvel com contratos ativos')
+    
+    query = 'DELETE FROM imoveis WHERE id = ?'
+    self.executar_query(query, (imovel_id,), commit=True)
+
+def listar_contratos(self):
+    '''Retorna lista de todos os contratos com informações relacionadas'''
+    query = '''
+        SELECT 
+            c.*,
+            i.endereco || ', ' || i.numero as imovel_endereco,
+            i.cidade as imovel_cidade,
+            p_inq.nome as inquilino_nome,
+            p_fia.nome as fiador_nome
+        FROM contratos c
+        JOIN imoveis i ON c.imovel_id = i.id
+        JOIN pessoas p_inq ON c.inquilino_id = p_inq.id
+        LEFT JOIN pessoas p_fia ON c.fiador_id = p_fia.id
+        ORDER BY c.data_inicio DESC
+    '''
+    return self.executar_query(query)
+
+def buscar_contrato(self, contrato_id):
+    '''Retorna os dados de um contrato específico'''
+    query = 'SELECT * FROM contratos WHERE id = ?'
+    resultado = self.executar_query(query, (contrato_id,))
+    return resultado[0] if resultado else None
+
+def atualizar_contrato(self, contrato_id, **kwargs):
+    '''Atualiza os dados de um contrato'''
+    campos = []
+    valores = []
+    
+    for campo, valor in kwargs.items():
+        if valor is not None:
+            campos.append(f'{campo} = ?')
+            valores.append(valor)
+    
+    if not campos:
+        return
+    
+    valores.append(contrato_id)
+    query = f'UPDATE contratos SET {", ".join(campos)} WHERE id = ?'
+    
+    self.executar_query(query, tuple(valores), commit=True)
+
+def listar_pessoas(self):
+    '''Retorna lista de todas as pessoas'''
+    query = 'SELECT * FROM pessoas ORDER BY nome'
+    return self.executar_query(query)
+"""
+
+# ============================================================================
+# NOTAS IMPORTANTES
+# ============================================================================
+
+"""
+1. Certifique-se de que o SECRET_KEY está configurado corretamente
+2. Verifique se as pastas templates/imoveis e templates/contratos existem
+3. As rotas usam flash() para mensagens - certifique-se de ter isso no base.html
+4. Adicione os métodos auxiliares ao DatabaseManager conforme indicado
+5. Teste cada rota individualmente após implementar
+"""

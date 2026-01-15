@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Imóveis - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-home"></i> Meus Imóveis</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('imoveis_novo') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Novo Imóvel
+            </a>
+        </div>
+    </div>
+
+    {% if imoveis %}
+    <div class="row">
+        {% for imovel in imoveis %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-{{ 'success' if imovel.status == 'disponivel' else 'warning' if imovel.status == 'manutencao' else 'danger' }}">
+                    <h5 class="card-title mb-0 text-white">
+                        {{ imovel.tipo }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <strong>{{ imovel.endereco }}, {{ imovel.numero }}</strong>
+                        {% if imovel.complemento %}
+                        <br>{{ imovel.complemento }}
+                        {% endif %}
+                        <br>{{ imovel.bairro }} - {{ imovel.cidade }}/{{ imovel.estado }}
+                    </p>
+                    
+                    <hr>
+                    
+                    <div class="row text-center">
+                        {% if imovel.quartos > 0 %}
+                        <div class="col-4">
+                            <i class="fas fa-bed"></i><br>
+                            <small>{{ imovel.quartos }} quarto{{ 's' if imovel.quartos > 1 else '' }}</small>
+                        </div>
+                        {% endif %}
+                        {% if imovel.banheiros > 0 %}
+                        <div class="col-4">
+                            <i class="fas fa-bath"></i><br>
+                            <small>{{ imovel.banheiros }} banheiro{{ 's' if imovel.banheiros > 1 else '' }}</small>
+                        </div>
+                        {% endif %}
+                        {% if imovel.vagas > 0 %}
+                        <div class="col-4">
+                            <i class="fas fa-car"></i><br>
+                            <small>{{ imovel.vagas }} vaga{{ 's' if imovel.vagas > 1 else '' }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if imovel.area_total %}
+                    <p class="mt-3 mb-0">
+                        <i class="fas fa-ruler-combined"></i> {{ imovel.area_total }} m²
+                    </p>
+                    {% endif %}
+                    
+                    <p class="mt-2 mb-0">
+                        <span class="badge bg-{{ 'success' if imovel.status == 'disponivel' else 'warning' if imovel.status == 'manutencao' else 'danger' }}">
+                            {{ imovel.status|upper }}
+                        </span>
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('imoveis_editar', id=imovel.id) }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
+                    <button class="btn btn-sm btn-danger" onclick="confirmarExclusao({{ imovel.id }})">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> Nenhum imóvel cadastrado ainda. 
+        <a href="{{ url_for('imoveis_novo') }}">Clique aqui para cadastrar o primeiro imóvel.</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal de confirmação de exclusão -->
+<form id="formExclusao" method="POST" style="display:none;">
+    <input type="hidden" name="imovel_id" id="imovelExcluir">
+</form>
+
+<script>
+function confirmarExclusao(imovelId) {
+    if (confirm('Tem certeza que deseja excluir este imóvel?')) {
+        var form = document.getElementById('formExclusao');
+        form.action = '/imoveis/excluir/' + imovelId;
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

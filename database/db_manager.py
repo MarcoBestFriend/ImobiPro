@@ -392,7 +392,189 @@ class DatabaseManager:
         """Fecha conexão ao sair do context manager."""
         self.close()
 
+"""
+INSTRUÇÕES: 
+1. Abra o arquivo database/db_manager.py no VSCode
+2. Procure pela classe DatabaseManager (deve ter uma linha que diz "class DatabaseManager:")
+3. Role até o final da classe (antes da última linha que tem só "}")
+4. Cole TODOS os métodos abaixo DENTRO da classe DatabaseManager
+5. Salve o arquivo (Ctrl+S)
+"""
 
+# ============================================================================
+# COLE ESTES MÉTODOS DENTRO DA CLASSE DatabaseManager
+# ============================================================================
+
+    def listar_imoveis(self):
+        """Lista todos os imóveis cadastrados"""
+        query = '''
+            SELECT * FROM imoveis 
+            ORDER BY cidade, bairro, endereco
+        '''
+        return self.executar_query(query)
+
+    def listar_imoveis_disponiveis(self):
+        """Lista apenas imóveis disponíveis para locação"""
+        query = '''
+            SELECT * FROM imoveis 
+            WHERE status = 'disponivel' 
+            ORDER BY cidade, bairro, endereco
+        '''
+        return self.executar_query(query)
+
+    def buscar_imovel(self, imovel_id):
+        """Busca um imóvel específico pelo ID"""
+        query = 'SELECT * FROM imoveis WHERE id = ?'
+        resultado = self.executar_query(query, (imovel_id,))
+        return resultado[0] if resultado else None
+
+    def inserir_imovel(self, **kwargs):
+        """Insere um novo imóvel no banco de dados"""
+        # Lista de campos da tabela imoveis
+        campos = [
+            'endereco', 'numero', 'complemento', 'bairro', 'cidade', 
+            'estado', 'cep', 'tipo', 'quartos', 'banheiros', 'vagas',
+            'area_total', 'valor_compra', 'valor_atual', 'iptu_anual',
+            'matricula', 'inscricao_municipal', 'status', 'observacoes'
+        ]
+        
+        # Filtra apenas os campos que foram passados
+        campos_presentes = [c for c in campos if c in kwargs]
+        valores = [kwargs[c] for c in campos_presentes]
+        
+        # Monta a query
+        placeholders = ', '.join(['?' for _ in campos_presentes])
+        campos_str = ', '.join(campos_presentes)
+        
+        query = f'INSERT INTO imoveis ({campos_str}) VALUES ({placeholders})'
+        
+        cursor = self.conn.cursor()
+        cursor.execute(query, tuple(valores))
+        self.conn.commit()
+        
+        return cursor.lastrowid
+
+    def atualizar_imovel(self, imovel_id, **kwargs):
+        """Atualiza os dados de um imóvel"""
+        if not kwargs:
+            return
+        
+        # Monta a lista de campos a atualizar
+        campos = []
+        valores = []
+        
+        for campo, valor in kwargs.items():
+            campos.append(f'{campo} = ?')
+            valores.append(valor)
+        
+        valores.append(imovel_id)
+        
+        query = f'UPDATE imoveis SET {", ".join(campos)} WHERE id = ?'
+        
+        cursor = self.conn.cursor()
+        cursor.execute(query, tuple(valores))
+        self.conn.commit()
+
+    def excluir_imovel(self, imovel_id):
+        """Exclui um imóvel (apenas se não tiver contratos ativos)"""
+        # Primeiro verifica se há contratos ativos
+        query = '''
+            SELECT COUNT(*) as total 
+            FROM contratos 
+            WHERE imovel_id = ? AND status = 'ativo'
+        '''
+        resultado = self.executar_query(query, (imovel_id,))
+        
+        if resultado[0]['total'] > 0:
+            raise Exception('Não é possível excluir imóvel com contratos ativos')
+        
+        # Se não houver contratos ativos, pode excluir
+        query = 'DELETE FROM imoveis WHERE id = ?'
+        cursor = self.conn.cursor()
+        cursor.execute(query, (imovel_id,))
+        self.conn.commit()
+
+    def listar_contratos(self):
+        """Lista todos os contratos com informações dos imóveis e pessoas"""
+        query = '''
+            SELECT 
+                c.*,
+                i.endereco || ', ' || i.numero as imovel_endereco,
+                i.cidade as imovel_cidade,
+                p_inq.nome as inquilino_nome,
+                p_fia.nome as fiador_nome
+            FROM contratos c
+            JOIN imoveis i ON c.imovel_id = i.id
+            JOIN pessoas p_inq ON c.inquilino_id = p_inq.id
+            LEFT JOIN pessoas p_fia ON c.fiador_id = p_fia.id
+            ORDER BY c.data_inicio DESC
+        '''
+        return self.executar_query(query)
+
+    def buscar_contrato(self, contrato_id):
+        """Busca um contrato específico pelo ID"""
+        query = 'SELECT * FROM contratos WHERE id = ?'
+        resultado = self.executar_query(query, (contrato_id,))
+        return resultado[0] if resultado else None
+
+    def inserir_contrato(self, **kwargs):
+        """Insere um novo contrato no banco de dados"""
+        # Lista de campos da tabela contratos
+        campos = [
+            'imovel_id', 'inquilino_id', 'fiador_id', 'data_inicio', 
+            'data_fim', 'valor_aluguel', 'dia_vencimento', 
+            'taxa_administracao', 'indice_reajuste', 
+            'periodicidade_reajuste', 'status', 'observacoes'
+        ]
+        
+        # Filtra apenas os campos que foram passados
+        campos_presentes = [c for c in campos if c in kwargs and kwargs[c] is not None]
+        valores = [kwargs[c] for c in campos_presentes]
+        
+        # Monta a query
+        placeholders = ', '.join(['?' for _ in campos_presentes])
+        campos_str = ', '.join(campos_presentes)
+        
+        query = f'INSERT INTO contratos ({campos_str}) VALUES ({placeholders})'
+        
+        cursor = self.conn.cursor()
+        cursor.execute(query, tuple(valores))
+        self.conn.commit()
+        
+        return cursor.lastrowid
+
+    def atualizar_contrato(self, contrato_id, **kwargs):
+        """Atualiza os dados de um contrato"""
+        if not kwargs:
+            return
+        
+        # Monta a lista de campos a atualizar
+        campos = []
+        valores = []
+        
+        for campo, valor in kwargs.items():
+            campos.append(f'{campo} = ?')
+            valores.append(valor)
+        
+        valores.append(contrato_id)
+        
+        query = f'UPDATE contratos SET {", ".join(campos)} WHERE id = ?'
+        
+        cursor = self.conn.cursor()
+        cursor.execute(query, tuple(valores))
+        self.conn.commit()
+
+    def listar_pessoas(self):
+        """Lista todas as pessoas cadastradas"""
+        query = '''
+            SELECT * FROM pessoas 
+            ORDER BY nome
+        '''
+        return self.executar_query(query)
+
+# ============================================================================
+# FIM DOS MÉTODOS - 
+# ============================================================================
 # ============================================================================
 # FUNÇÕES AUXILIARES
 # ============================================================================
