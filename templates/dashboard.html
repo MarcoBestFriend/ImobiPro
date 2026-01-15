@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>📊 Dashboard</h2>
+    <p>Visão geral do sistema de gestão imobiliária</p>
+</div>
+
+<!-- Estatísticas principais -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Total de Imóveis</div>
+        <div class="stat-value">{{ stats.total_imoveis }}</div>
+        <div class="stat-description">Imóveis cadastrados</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">Imóveis Ocupados</div>
+        <div class="stat-value" style="color: var(--success);">{{ stats.imoveis_ocupados }}</div>
+        <div class="stat-description">Com contratos ativos</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">Imóveis Disponíveis</div>
+        <div class="stat-value" style="color: var(--warning);">{{ stats.imoveis_disponiveis }}</div>
+        <div class="stat-description">Prontos para locação</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">Taxa de Ocupação</div>
+        <div class="stat-value" style="color: var(--info);">{{ "%.1f"|format(stats.taxa_ocupacao) }}%</div>
+        <div class="stat-description">Percentual ocupado</div>
+    </div>
+</div>
+
+<!-- Grid de informações -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: var(--spacing-md);">
+    
+    <!-- Contratos Ativos -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📋 Contratos Ativos</h3>
+            <span class="badge badge-success">{{ stats.contratos_ativos }}</span>
+        </div>
+        
+        {% if contratos_ativos %}
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Imóvel</th>
+                            <th>Inquilino</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for contrato in contratos_ativos %}
+                        <tr>
+                            <td style="color: var(--text-primary); font-weight: 500;">
+                                {{ contrato.imovel_endereco[:40] }}...
+                            </td>
+                            <td>{{ contrato.inquilino_nome }}</td>
+                            <td style="color: var(--success); font-weight: 600;">
+                                {{ contrato.valor_aluguel|formatar_moeda }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top: var(--spacing-sm); text-align: center;">
+                <a href="{{ url_for('listar_contratos') }}" class="btn btn-secondary">Ver todos os contratos</a>
+            </div>
+        {% else %}
+            <p style="color: var(--text-muted); text-align: center; padding: var(--spacing-lg);">
+                Nenhum contrato ativo no momento.
+            </p>
+        {% endif %}
+    </div>
+    
+    <!-- Imóveis Disponíveis -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🏘️ Imóveis Disponíveis</h3>
+            <span class="badge badge-warning">{{ stats.imoveis_disponiveis }}</span>
+        </div>
+        
+        {% if imoveis_disponiveis %}
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Endereço</th>
+                            <th>Tipo</th>
+                            <th>Valor Sugerido</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for imovel in imoveis_disponiveis %}
+                        <tr>
+                            <td style="color: var(--text-primary); font-weight: 500;">
+                                {{ imovel.endereco_completo[:35] }}...
+                            </td>
+                            <td>{{ imovel.tipo_imovel }}</td>
+                            <td style="color: var(--accent); font-weight: 600;">
+                                {{ imovel.aluguel_pretendido|formatar_moeda }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top: var(--spacing-sm); text-align: center;">
+                <a href="{{ url_for('listar_imoveis') }}?ocupado=Não" class="btn btn-secondary">Ver todos disponíveis</a>
+            </div>
+        {% else %}
+            <p style="color: var(--text-muted); text-align: center; padding: var(--spacing-lg);">
+                Todos os imóveis estão ocupados! 🎉
+            </p>
+        {% endif %}
+    </div>
+    
+    <!-- Despesas Pendentes -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">💸 Despesas Pendentes</h3>
+            <span class="badge badge-danger">{{ stats.despesas_pendentes }}</span>
+        </div>
+        
+        {% if despesas_pendentes %}
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Imóvel</th>
+                            <th>Valor</th>
+                            <th>Situação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for despesa in despesas_pendentes %}
+                        <tr>
+                            <td style="color: var(--text-primary); font-weight: 500;">
+                                {{ despesa.tipo_despesa }}
+                            </td>
+                            <td>{{ despesa.imovel[:25] }}...</td>
+                            <td style="color: var(--danger); font-weight: 600;">
+                                {{ despesa.valor_previsto|formatar_moeda }}
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ 'danger' if despesa.situacao == 'Atrasado' else 'warning' }}">
+                                    {{ despesa.situacao }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p style="color: var(--text-muted); text-align: center; padding: var(--spacing-lg);">
+                ✓ Nenhuma despesa pendente!
+            </p>
+        {% endif %}
+    </div>
+    
+    <!-- Receitas Pendentes -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">💰 Receitas Pendentes</h3>
+            <span class="badge badge-info">{{ stats.receitas_pendentes }}</span>
+        </div>
+        
+        {% if receitas_pendentes %}
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Inquilino</th>
+                            <th>Imóvel</th>
+                            <th>Valor</th>
+                            <th>Situação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for receita in receitas_pendentes %}
+                        <tr>
+                            <td style="color: var(--text-primary); font-weight: 500;">
+                                {{ receita.inquilino }}
+                            </td>
+                            <td>{{ receita.imovel[:25] }}...</td>
+                            <td style="color: var(--success); font-weight: 600;">
+                                {{ receita.valor_total_devido|formatar_moeda }}
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ 'danger' if receita.situacao == 'Atrasado' else 'warning' }}">
+                                    {{ receita.situacao }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p style="color: var(--text-muted); text-align: center; padding: var(--spacing-lg);">
+                ✓ Nenhuma receita pendente!
+            </p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Ações rápidas -->
+<div class="card" style="margin-top: var(--spacing-lg);">
+    <div class="card-header">
+        <h3 class="card-title">⚡ Ações Rápidas</h3>
+    </div>
+    <div style="display: flex; gap: var(--spacing-md); flex-wrap: wrap;">
+        <a href="{{ url_for('novo_imovel') }}" class="btn btn-primary">
+            <span>➕</span> Cadastrar Imóvel
+        </a>
+        <a href="{{ url_for('nova_pessoa') }}" class="btn btn-primary">
+            <span>➕</span> Cadastrar Pessoa
+        </a>
+        <a href="#" class="btn btn-success">
+            <span>💰</span> Lançar Aluguéis do Mês
+        </a>
+        <a href="#" class="btn btn-secondary">
+            <span>📊</span> Gerar Relatório
+        </a>
+        <a href="#" class="btn btn-secondary">
+            <span>💾</span> Fazer Backup
+        </a>
+    </div>
+</div>
+
+{% endblock %}

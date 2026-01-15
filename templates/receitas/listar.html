@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Receitas - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>💰 Receitas</h2>
+            <p>Gerenciamento de receitas e aluguéis</p>
+        </div>
+        <a href="#" class="btn btn-success">
+            <span>💰</span> Lançar Aluguéis do Mês
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card">
+    <form method="get" action="{{ url_for('listar_receitas') }}">
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: var(--spacing-md); align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="pendente" {% if status == 'pendente' %}selected{% endif %}>Pendentes</option>
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: var(--spacing-xs);">
+                <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+                <a href="{{ url_for('listar_receitas') }}" class="btn btn-secondary">🔄 Limpar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Lista de receitas -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Lista de Receitas</h3>
+        <span class="badge badge-info">{{ receitas|length }} receitas</span>
+    </div>
+    
+    {% if receitas %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Imóvel</th>
+                        <th>Inquilino</th>
+                        <th>Mês Ref.</th>
+                        <th>Valor Total</th>
+                        <th>Vencimento</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for receita in receitas %}
+                    <tr>
+                        <td style="color: var(--text-muted); font-family: monospace;">#{{ receita.id }}</td>
+                        <td style="color: var(--text-primary); font-weight: 500;">
+                            {{ receita.imovel_endereco[:40] if receita.get('imovel_endereco') else receita.get('imovel', '')[:40] }}...
+                        </td>
+                        <td style="color: var(--text-secondary);">{{ receita.inquilino_nome or receita.get('inquilino', '-') }}</td>
+                        <td>{{ receita.mes_referencia }}</td>
+                        <td style="color: var(--success); font-weight: 600;">{{ receita.valor_total_devido|formatar_moeda }}</td>
+                        <td style="color: var(--text-secondary);">{{ receita.vencimento_previsto|formatar_data }}</td>
+                        <td>
+                            <span class="badge badge-{{ receita.status|status_badge }}">{{ receita.status }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-muted);">
+            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">💰</div>
+            <h3 style="color: var(--text-secondary);">Nenhuma receita encontrada</h3>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

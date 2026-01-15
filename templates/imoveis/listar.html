@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Imóveis - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>🏘️ Imóveis</h2>
+            <p>Gerenciamento de imóveis cadastrados</p>
+        </div>
+        <a href="{{ url_for('novo_imovel') }}" class="btn btn-primary">
+            <span>➕</span> Novo Imóvel
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card">
+    <form method="get" action="{{ url_for('listar_imoveis') }}">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: var(--spacing-md); align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Buscar por endereço</label>
+                <input type="text" name="busca" class="form-control" placeholder="Digite o endereço..." value="{{ busca }}">
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Status de ocupação</label>
+                <select name="ocupado" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="Sim" {% if filtro_ocupado == 'Sim' %}selected{% endif %}>Ocupados</option>
+                    <option value="Não" {% if filtro_ocupado == 'Não' %}selected{% endif %}>Disponíveis</option>
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: var(--spacing-xs);">
+                <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+                <a href="{{ url_for('listar_imoveis') }}" class="btn btn-secondary">🔄 Limpar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Lista de imóveis -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Lista de Imóveis</h3>
+        <span class="badge badge-info">{{ imoveis|length }} imóveis</span>
+    </div>
+    
+    {% if imoveis %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Endereço</th>
+                        <th>Tipo</th>
+                        <th>Ocupado</th>
+                        <th>Aluguel Pretendido</th>
+                        <th>IPTU</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for imovel in imoveis %}
+                    <tr>
+                        <td style="color: var(--text-muted); font-family: monospace;">
+                            #{{ imovel.id }}
+                        </td>
+                        <td style="color: var(--text-primary); font-weight: 500;">
+                            {{ imovel.endereco_completo }}
+                        </td>
+                        <td>
+                            <span class="badge badge-secondary">{{ imovel.tipo_imovel }}</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ imovel.ocupado|status_badge }}">
+                                {{ imovel.ocupado }}
+                            </span>
+                        </td>
+                        <td style="color: var(--success); font-weight: 600;">
+                            {{ imovel.aluguel_pretendido|formatar_moeda }}
+                        </td>
+                        <td>
+                            <div style="font-size: 0.875rem;">
+                                <div style="color: var(--text-primary);">{{ imovel.valor_iptu_anual|formatar_moeda }}</div>
+                                <div style="color: var(--text-muted);">{{ imovel.forma_pagamento_iptu }}</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="{{ url_for('ver_imovel', id=imovel.id) }}" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                    👁️ Ver
+                                </a>
+                                <a href="{{ url_for('editar_imovel', id=imovel.id) }}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                    ✏️ Editar
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-muted);">
+            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">🏘️</div>
+            <h3 style="color: var(--text-secondary); margin-bottom: var(--spacing-sm);">
+                Nenhum imóvel encontrado
+            </h3>
+            <p style="margin-bottom: var(--spacing-md);">
+                {% if busca or filtro_ocupado %}
+                    Nenhum resultado para os filtros aplicados.
+                {% else %}
+                    Comece cadastrando seu primeiro imóvel!
+                {% endif %}
+            </p>
+            <a href="{{ url_for('novo_imovel') }}" class="btn btn-primary">
+                ➕ Cadastrar Primeiro Imóvel
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

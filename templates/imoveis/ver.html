@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}{{ imovel.endereco_completo }} - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>🏠 {{ imovel.endereco_completo }}</h2>
+            <p>Detalhes completos do imóvel</p>
+        </div>
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('listar_imoveis') }}" class="btn btn-secondary">← Voltar</a>
+            <a href="{{ url_for('editar_imovel', id=imovel.id) }}" class="btn btn-primary">✏️ Editar</a>
+        </div>
+    </div>
+</div>
+
+<!-- Informações principais -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📋 Informações do Imóvel</h3>
+        </div>
+        
+        <div style="display: grid; gap: var(--spacing-md);">
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    ID do Imóvel
+                </label>
+                <div style="color: var(--text-primary); font-weight: 600; font-family: monospace;">
+                    #{{ imovel.id }}
+                </div>
+            </div>
+            
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Endereço Completo
+                </label>
+                <div style="color: var(--text-primary); font-weight: 600; font-size: 1.125rem;">
+                    {{ imovel.endereco_completo }}
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                <div>
+                    <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                        Tipo de Imóvel
+                    </label>
+                    <span class="badge badge-secondary" style="font-size: 1rem;">
+                        {{ imovel.tipo_imovel }}
+                    </span>
+                </div>
+                
+                <div>
+                    <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                        Status de Ocupação
+                    </label>
+                    <span class="badge badge-{{ imovel.ocupado|status_badge }}" style="font-size: 1rem;">
+                        {{ imovel.ocupado }}
+                    </span>
+                </div>
+            </div>
+            
+            {% if imovel.inscricao_imobiliaria %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Inscrição Imobiliária
+                </label>
+                <div style="color: var(--text-primary); font-family: monospace;">
+                    {{ imovel.inscricao_imobiliaria }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">💰 Valores</h3>
+        </div>
+        
+        <div style="display: grid; gap: var(--spacing-md);">
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Aluguel Pretendido
+                </label>
+                <div style="color: var(--success); font-weight: 700; font-size: 1.5rem;">
+                    {{ imovel.aluguel_pretendido|formatar_moeda }}
+                </div>
+            </div>
+            
+            {% if imovel.condominio_sugerido %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Condomínio Sugerido
+                </label>
+                <div style="color: var(--text-primary); font-weight: 600;">
+                    {{ imovel.condominio_sugerido|formatar_moeda }}
+                    <span style="color: var(--text-muted); font-size: 0.875rem;">
+                        (Venc. dia {{ imovel.dia_venc_condominio }})
+                    </span>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    IPTU Anual
+                </label>
+                <div style="color: var(--text-primary); font-weight: 600;">
+                    {{ imovel.valor_iptu_anual|formatar_moeda }}
+                    <div style="font-size: 0.875rem; color: var(--text-muted); font-weight: normal;">
+                        Pagamento: {{ imovel.forma_pagamento_iptu }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contratos -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">📋 Contratos</h3>
+        <span class="badge badge-info">{{ contratos|length }}</span>
+    </div>
+    
+    {% if contratos %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Período</th>
+                        <th>Valor Aluguel</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contrato in contratos %}
+                    <tr>
+                        <td style="font-family: monospace;">#{{ contrato.id }}</td>
+                        <td>
+                            {{ contrato.inicio_contrato|formatar_data }}
+                            até
+                            {{ contrato.fim_contrato|formatar_data if contrato.fim_contrato else 'Indeterminado' }}
+                        </td>
+                        <td style="color: var(--success); font-weight: 600;">
+                            {{ contrato.valor_aluguel|formatar_moeda }}
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ contrato.status_contrato|status_badge }}">
+                                {{ contrato.status_contrato }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p style="text-align: center; color: var(--text-muted); padding: var(--spacing-lg);">
+            Nenhum contrato registrado para este imóvel.
+        </p>
+    {% endif %}
+</div>
+
+<!-- Despesas -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">💸 Despesas Recentes</h3>
+        <span class="badge badge-warning">{{ despesas|length }}</span>
+    </div>
+    
+    {% if despesas %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                        <th>Valor</th>
+                        <th>Vencimento</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for despesa in despesas[:10] %}
+                    <tr>
+                        <td>{{ despesa.tipo_despesa }}</td>
+                        <td>{{ despesa.motivo_despesa or '-' }}</td>
+                        <td style="color: var(--danger); font-weight: 600;">
+                            {{ despesa.valor_previsto|formatar_moeda }}
+                        </td>
+                        <td>{{ despesa.vencimento_previsto|formatar_data }}</td>
+                        <td>
+                            {% if despesa.data_pagamento %}
+                                <span class="badge badge-success">Pago</span>
+                            {% else %}
+                                <span class="badge badge-warning">Pendente</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p style="text-align: center; color: var(--text-muted); padding: var(--spacing-lg);">
+            Nenhuma despesa registrada para este imóvel.
+        </p>
+    {% endif %}
+</div>
+
+{% if imovel.observacoes %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">📝 Observações</h3>
+    </div>
+    <p style="color: var(--text-secondary); white-space: pre-wrap;">{{ imovel.observacoes }}</p>
+</div>
+{% endif %}
+
+{% endblock %}

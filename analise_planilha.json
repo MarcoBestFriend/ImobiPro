@@ -1,0 +1,1033 @@
+{
+  "imoveis": {
+    "dimensoes": {
+      "linhas": 1048576,
+      "colunas": 26
+    },
+    "headers": [
+      "ID_Propriedade",
+      "EnderecoCompleto",
+      "InscricaoImobiliaria",
+      "TipoImovel",
+      "Ocupado",
+      "ValorIPTUAnual",
+      "FormaPagamentoIPTU",
+      "AluguelPretendido",
+      "CondominioSugerido",
+      "DiaVencCondominio",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      "A macro iniciou..."
+    ],
+    "colunas": {
+      "ID_Propriedade": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 25,
+        "valores_unicos": 25,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "EnderecoCompleto": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 25,
+        "valores_unicos": 25,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "InscricaoImobiliaria": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 25,
+        "valores_unicos": 25,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "TipoImovel": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 25,
+        "valores_unicos": 25,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "Ocupado": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 25,
+        "valores_unicos": 25,
+        "tem_comentarios": false,
+        "tem_formulas": true,
+        "categorias": []
+      },
+      "ValorIPTUAnual": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 25,
+        "valores_unicos": 23,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "FormaPagamentoIPTU": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 25,
+        "valores_unicos": 2,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "Anual",
+          "Mensal"
+        ]
+      },
+      "AluguelPretendido": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 25,
+        "valores_unicos": 23,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "CondominioSugerido": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 25,
+        "valores_unicos": 15,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "DiaVencCondominio": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 25,
+        "valores_unicos": 7,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "1",
+          "15",
+          "20",
+          "0",
+          "10",
+          "4",
+          "5"
+        ]
+      },
+      "A macro iniciou...": {
+        "tipos": [],
+        "total_valores": 0,
+        "valores_unicos": 0,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      }
+    },
+    "comentarios": [
+      {
+        "celula": "A1",
+        "valor": "ID_Propriedade",
+        "comentario": "Marco Aurélio Gonzalez Chaves:\nMarco Aurélio Gonzalez Chaves: Preenchimento automático (chave única)\n"
+      },
+      {
+        "celula": "B1",
+        "valor": "EnderecoCompleto",
+        "comentario": "Marco Aurélio Gonzalez Chaves:\nPreenchimento pode ser com antecipação prévia, para prevenir duplicidade de imóvel.\nEste campo é o mais importante  para a leitura humana e serve efetivamente como chave única para a identificação do imóvel\n"
+      },
+      {
+        "celula": "D1",
+        "valor": "TipoImovel",
+        "comentario": "Marco Aurélio Gonzalez Chaves:\nEste campo, assim como outros desta tabela, será utilizado para preenchimento do contrato em papel, automação futura.\n"
+      },
+      {
+        "celula": "E1",
+        "valor": "Ocupado",
+        "comentario": "marco:\nO campo é preenchido dinamicamente, conforme são preenchidos dados na guia contratos.\nO imóvel está ocupado se tem contrato ativo com mesmo id ou vazio caso contrário.\nNa planilha usei a fórmula se, concatenada com cont.ses (condição 1 = imovel da linha atual e condição 2 = somar resultados = ativo em contratos ) havendo 1 contrato ativo, será preenchido como ocupado. \nÉ necessário o recálculo para funcionar direito.\n"
+      },
+      {
+        "celula": "F1",
+        "valor": "ValorIPTUAnual",
+        "comentario": "Marco Aurélio Gonzalez Chaves:\nValor Anual do IPTU\n\n"
+      },
+      {
+        "celula": "G1",
+        "valor": "FormaPagamentoIPTU",
+        "comentario": "Marco Aurélio Gonzalez Chaves:\nSe o IPTU for mensal, este campo será utlizado na guia contratos para acrescentar ao valor do alugel e, se houver, ao valor do condomínio.\n"
+      },
+      {
+        "celula": "H1",
+        "valor": "AluguelPretendido",
+        "comentario": "Marco Aurélio Gonzalez Chaves:\nValor sugeri\n"
+      }
+    ],
+    "validacoes": []
+  },
+  "pessoas": {
+    "dimensoes": {
+      "linhas": 999,
+      "colunas": 12
+    },
+    "headers": [
+      "ID_Pessoa",
+      "Situação",
+      "NomeCompleto",
+      "CPFNJP",
+      "Telefone",
+      "Email",
+      "EnderecoCompleto",
+      "Cidade",
+      "Patrimonio",
+      "EstadoCivil",
+      "NomeConjuge",
+      "CPFConjuge"
+    ],
+    "colunas": {
+      "ID_Pessoa": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 24,
+        "valores_unicos": 24,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "Situação": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 24,
+        "valores_unicos": 2,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "Fiador",
+          "Inquilino"
+        ]
+      },
+      "NomeCompleto": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 24,
+        "valores_unicos": 24,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "CPFNJP": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 24,
+        "valores_unicos": 24,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "Telefone": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 24,
+        "valores_unicos": 24,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "Email": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 24,
+        "valores_unicos": 24,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "EnderecoCompleto": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 24,
+        "valores_unicos": 24,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "Cidade": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 24,
+        "valores_unicos": 22,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "Patrimonio": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 24,
+        "valores_unicos": 24,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "EstadoCivil": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 24,
+        "valores_unicos": 4,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "Solteiro",
+          "Divorciado",
+          "Casado",
+          "solteiro"
+        ]
+      },
+      "NomeConjuge": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 11,
+        "valores_unicos": 11,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "CPFConjuge": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 11,
+        "valores_unicos": 11,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      }
+    },
+    "comentarios": [
+      {
+        "celula": "A1",
+        "valor": "ID_Pessoa",
+        "comentario": "marco:\nChave primária\n"
+      },
+      {
+        "celula": "D1",
+        "valor": "CPFNJP",
+        "comentario": "marco:\nPara humanos, o CPF (pessoa física) ou o CNPJ (no caso de pessoa jurídica) são os individualizadores perfeitos para funcionar como chave primária. Há uma máscara específica para cpf 999.999.999-99 e para cnpj 99.999.999/9999-99.\n"
+      }
+    ],
+    "validacoes": []
+  },
+  "contratos": {
+    "dimensoes": {
+      "linhas": 998,
+      "colunas": 14
+    },
+    "headers": [
+      "ID_Contrato",
+      "Imóvel",
+      "ID_Propriedade",
+      "Inquilino",
+      "ID_Inquilino",
+      "Garantia",
+      "Fiador",
+      "ID_Fiador",
+      "Obs",
+      "InicioContrato",
+      "FimContrato",
+      "ValorAluguel",
+      "DiaVenc",
+      "StatusContrato"
+    ],
+    "colunas": {
+      "ID_Contrato": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 15,
+        "valores_unicos": 15,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "Imóvel": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 15,
+        "valores_unicos": 15,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "ID_Propriedade": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 15,
+        "valores_unicos": 15,
+        "tem_comentarios": false,
+        "tem_formulas": true,
+        "categorias": []
+      },
+      "Inquilino": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 15,
+        "valores_unicos": 12,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "ID_Inquilino": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 15,
+        "valores_unicos": 15,
+        "tem_comentarios": false,
+        "tem_formulas": true,
+        "categorias": []
+      },
+      "Garantia": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 15,
+        "valores_unicos": 4,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "antecipado",
+          "nenhuma",
+          "fiança",
+          "caução"
+        ]
+      },
+      "Fiador": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 6,
+        "valores_unicos": 6,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "Zé da Padaria",
+          "Juca da Viola",
+          "Magnólia das Flores",
+          "Tiago sem Pressa",
+          "Caio no Poço",
+          "Úrsula a Única"
+        ]
+      },
+      "ID_Fiador": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 15,
+        "valores_unicos": 15,
+        "tem_comentarios": false,
+        "tem_formulas": true,
+        "categorias": []
+      },
+      "Obs": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 9,
+        "valores_unicos": 9,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "Caução depositada no banco Master",
+          "Três meses de caução depositadas no Banco Master",
+          "Filha da Dona Conceição",
+          "Tudo em perfeita ordem",
+          "Faltando uma telha na cozinha",
+          "Imóvel pintado antes da locação",
+          "Caio, o Fiador, tem negócios em Mogi das Cruzes-SP.",
+          "Já pagou os três primeiros meses",
+          "Pagamento até dia 5 do mês"
+        ]
+      },
+      "InicioContrato": {
+        "tipos": [
+          "datetime"
+        ],
+        "total_valores": 15,
+        "valores_unicos": 15,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "FimContrato": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 15,
+        "valores_unicos": 15,
+        "tem_comentarios": false,
+        "tem_formulas": true,
+        "categorias": []
+      },
+      "ValorAluguel": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 15,
+        "valores_unicos": 10,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "3200",
+          "2157",
+          "2438",
+          "4000",
+          "3000",
+          "499",
+          "1800",
+          "3202",
+          "400",
+          "2200"
+        ]
+      },
+      "DiaVenc": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 15,
+        "valores_unicos": 15,
+        "tem_comentarios": false,
+        "tem_formulas": true,
+        "categorias": []
+      },
+      "StatusContrato": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 15,
+        "valores_unicos": 4,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "Prorrogado",
+          "Ativo",
+          "Rescindido",
+          "Encerrado"
+        ]
+      }
+    },
+    "comentarios": [
+      {
+        "celula": "A1",
+        "valor": "ID_Contrato",
+        "comentario": "marco:\nGuia que relaciona o imóvel ao inquilino e ao(s) fiador. \nCada linha contempla um novo contrato de locação. \nContratos expirados ou rescindidos também são guardados aqui.\n"
+      },
+      {
+        "celula": "B1",
+        "valor": "Imóvel",
+        "comentario": "marco:\nChave primária, preenchimento com menu pull down dentre os imóveis não ocupados (disponíveis).\n"
+      },
+      {
+        "celula": "F1",
+        "valor": "Garantia",
+        "comentario": "marco:\nSe a garantia for fiança, inserir também a guia Fiadores, com o número do contrato e identificação dos fiadores\n"
+      },
+      {
+        "celula": "G1",
+        "valor": "Fiador",
+        "comentario": "marco:\nFiador só é obrigatório se o campo garantia, ao lado, for fiança.\n"
+      },
+      {
+        "celula": "J1",
+        "valor": "InicioContrato",
+        "comentario": "marco:\nData inicial do contrato.\n"
+      },
+      {
+        "celula": "K1",
+        "valor": "FimContrato",
+        "comentario": "marco:\nData prevista para o fim do contrato. A prorrogação natural do contrato deve ser observada no DashBoard.\nA rescisão antecipada do contrato ficará gravada aqui, caso o status seja mudado para Encerrado (coluna N).\n"
+      },
+      {
+        "celula": "L1",
+        "valor": "ValorAluguel",
+        "comentario": "marco:\nEste campo deve ser pré-preenchido com o valor constante de imoveis[ValorPretendido], porém é possível editar o campo, no momento do registro do contrato de locação.\n"
+      },
+      {
+        "celula": "M1",
+        "valor": "DiaVenc",
+        "comentario": "marco:\nDia do vencimento do aluguel\n"
+      }
+    ],
+    "validacoes": []
+  },
+  "Fiadores": {
+    "dimensoes": {
+      "linhas": 3,
+      "colunas": 4
+    },
+    "headers": [
+      "NumContrato",
+      "Fiador1",
+      "Fiador2",
+      "Fiador3"
+    ],
+    "colunas": {
+      "NumContrato": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 2,
+        "valores_unicos": 2,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "1",
+          "9"
+        ]
+      },
+      "Fiador1": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 2,
+        "valores_unicos": 2,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "Magnólia das Flores",
+          "Regina da Economia"
+        ]
+      },
+      "Fiador2": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 2,
+        "valores_unicos": 2,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "Zé da Padaria",
+          "Tiago sem Pressa"
+        ]
+      },
+      "Fiador3": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 2,
+        "valores_unicos": 2,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "Felícia da Sorte",
+          "Úrsula a Única"
+        ]
+      }
+    },
+    "comentarios": [],
+    "validacoes": []
+  },
+  "despesas": {
+    "dimensoes": {
+      "linhas": 982,
+      "colunas": 13
+    },
+    "headers": [
+      "ID_Lancamento",
+      "EnderecoCompleto",
+      "Id_Propriedade",
+      "MesReferencia",
+      "TipoDespesa",
+      "ValorPrevisto",
+      "MotivoDespesa",
+      "VencimentoPrevisto",
+      "DataPagamento",
+      "ValorPago",
+      "Observacoes",
+      null,
+      null
+    ],
+    "colunas": {
+      "ID_Lancamento": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 46,
+        "valores_unicos": 46,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "EnderecoCompleto": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 46,
+        "valores_unicos": 25,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "Id_Propriedade": {
+        "tipos": [
+          "int",
+          "str"
+        ],
+        "total_valores": 46,
+        "valores_unicos": 30,
+        "tem_comentarios": false,
+        "tem_formulas": true,
+        "categorias": []
+      },
+      "MesReferencia": {
+        "tipos": [
+          "datetime"
+        ],
+        "total_valores": 46,
+        "valores_unicos": 4,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "2025-12-01 00:00:00",
+          "2026-01-01 00:00:00",
+          "2026-12-01 00:00:00",
+          "2026-01-26 00:00:00"
+        ]
+      },
+      "TipoDespesa": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 46,
+        "valores_unicos": 4,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "Manutenção",
+          "Condomínio",
+          "Reforma",
+          "IPTU"
+        ]
+      },
+      "ValorPrevisto": {
+        "tipos": [
+          "float",
+          "int"
+        ],
+        "total_valores": 46,
+        "valores_unicos": 30,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "MotivoDespesa": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 46,
+        "valores_unicos": 8,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "faxina",
+          "Anual",
+          "Mensal",
+          "Mensalidade",
+          "conserto telhado",
+          "troca fechadura que estava estragada",
+          "Pintura externa",
+          "limpeza esgoto"
+        ]
+      },
+      "VencimentoPrevisto": {
+        "tipos": [
+          "datetime"
+        ],
+        "total_valores": 17,
+        "valores_unicos": 6,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "2026-01-20 00:00:00",
+          "2026-01-01 00:00:00",
+          "2026-01-15 00:00:00",
+          "2026-01-05 00:00:00",
+          "2026-01-10 00:00:00",
+          "2026-01-04 00:00:00"
+        ]
+      },
+      "DataPagamento": {
+        "tipos": [
+          "datetime"
+        ],
+        "total_valores": 5,
+        "valores_unicos": 5,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "2026-01-09 00:00:00",
+          "2025-12-12 00:00:00",
+          "2026-01-05 00:00:00",
+          "2026-01-04 00:00:00",
+          "2026-01-08 00:00:00"
+        ]
+      },
+      "ValorPago": {
+        "tipos": [
+          "float",
+          "int"
+        ],
+        "total_valores": 5,
+        "valores_unicos": 5,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "880",
+          "1402.17",
+          "443",
+          "1000",
+          "26214.23"
+        ]
+      },
+      "Observacoes": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 5,
+        "valores_unicos": 5,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "Manter limpo",
+          "Cadastrar novos pintores",
+          "Garantia de 03 meses",
+          "Faxina D. Cida",
+          "Utilizar peças originais."
+        ]
+      }
+    },
+    "comentarios": [
+      {
+        "celula": "A1",
+        "valor": "ID_Lancamento",
+        "comentario": "marco:\nEsta guia contém as despesas do contrato. Este campo é chave primária. \nAlgumas despesas são periódicas (mensais) e automáticas (todos os meses, no dia do vencimento da obrigação), como o condomínio e o IPTU.\nOutras despesas são lançadas manualmente, como serviços de reforma, pequenas manutenções ou taxas de responsabilidade do proprietário.\n"
+      }
+    ],
+    "validacoes": []
+  },
+  "receitas": {
+    "dimensoes": {
+      "linhas": 1000,
+      "colunas": 13
+    },
+    "headers": [
+      "ID_Lancamento",
+      "MesReferencia",
+      "ID_Contrato",
+      "AluguelDevido",
+      "CondominioDevido",
+      "IPTUDevido",
+      "Desconto(-) Multa (+)",
+      "ValorTotalDevido",
+      "VencimentoPrevisto",
+      "DataRecebimento",
+      "ValorRecebido",
+      "Status",
+      "Observacoes"
+    ],
+    "colunas": {
+      "ID_Lancamento": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 12,
+        "valores_unicos": 12,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "MesReferencia": {
+        "tipos": [
+          "datetime"
+        ],
+        "total_valores": 12,
+        "valores_unicos": 1,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "2026-01-26 00:00:00"
+        ]
+      },
+      "ID_Contrato": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 12,
+        "valores_unicos": 12,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "AluguelDevido": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 12,
+        "valores_unicos": 12,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "CondominioDevido": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 12,
+        "valores_unicos": 11,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "IPTUDevido": {
+        "tipos": [
+          "int"
+        ],
+        "total_valores": 12,
+        "valores_unicos": 12,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "Desconto(-) Multa (+)": {
+        "tipos": [],
+        "total_valores": 0,
+        "valores_unicos": 0,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "ValorTotalDevido": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 12,
+        "valores_unicos": 12,
+        "tem_comentarios": false,
+        "tem_formulas": true,
+        "categorias": []
+      },
+      "VencimentoPrevisto": {
+        "tipos": [
+          "datetime"
+        ],
+        "total_valores": 12,
+        "valores_unicos": 11,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "DataRecebimento": {
+        "tipos": [],
+        "total_valores": 0,
+        "valores_unicos": 0,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "ValorRecebido": {
+        "tipos": [],
+        "total_valores": 0,
+        "valores_unicos": 0,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      },
+      "Status": {
+        "tipos": [
+          "str"
+        ],
+        "total_valores": 12,
+        "valores_unicos": 1,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": [
+          "Pendente"
+        ]
+      },
+      "Observacoes": {
+        "tipos": [],
+        "total_valores": 0,
+        "valores_unicos": 0,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      }
+    },
+    "comentarios": [],
+    "validacoes": []
+  },
+  "DashBoard": {
+    "dimensoes": {
+      "linhas": 14,
+      "colunas": 3
+    },
+    "headers": [
+      null,
+      null,
+      "Mais rentáveis"
+    ],
+    "colunas": {
+      "Mais rentáveis": {
+        "tipos": [],
+        "total_valores": 0,
+        "valores_unicos": 0,
+        "tem_comentarios": false,
+        "tem_formulas": false,
+        "categorias": []
+      }
+    },
+    "comentarios": [],
+    "validacoes": []
+  }
+}

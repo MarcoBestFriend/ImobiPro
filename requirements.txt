@@ -1,0 +1,18 @@
+# ImobiPro - Dependências Python
+# Instalação: pip install -r requirements.txt
+
+# Framework Web
+flask>=3.0.0
+flask-login>=0.6.3
+
+# Segurança e utilitários
+werkzeug>=3.0.0
+
+# Manipulação de Excel
+openpyxl>=3.1.0
+
+# Processamento de imagens
+pillow>=10.0.0
+
+# Geração de PDFs
+reportlab>=4.0.0

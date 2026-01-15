@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Despesas - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>💸 Despesas</h2>
+            <p>Gerenciamento de despesas dos imóveis</p>
+        </div>
+        <a href="#" class="btn btn-primary">
+            <span>➕</span> Nova Despesa
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card">
+    <form method="get" action="{{ url_for('listar_despesas') }}">
+        <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: var(--spacing-md); align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Tipo de Despesa</label>
+                <select name="tipo" class="form-control">
+                    <option value="">Todos</option>
+                    {% for t in config.TIPOS_DESPESA %}
+                    <option value="{{ t }}" {% if tipo == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="pendente" {% if status == 'pendente' %}selected{% endif %}>Pendentes</option>
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: var(--spacing-xs);">
+                <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+                <a href="{{ url_for('listar_despesas') }}" class="btn btn-secondary">🔄 Limpar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Lista de despesas -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Lista de Despesas</h3>
+        <span class="badge badge-info">{{ despesas|length }} despesas</span>
+    </div>
+    
+    {% if despesas %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Imóvel</th>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                        <th>Valor</th>
+                        <th>Vencimento</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for despesa in despesas %}
+                    <tr>
+                        <td style="color: var(--text-muted); font-family: monospace;">#{{ despesa.id }}</td>
+                        <td style="color: var(--text-primary); font-weight: 500;">
+                            {{ despesa.imovel_endereco[:40] if despesa.get('imovel_endereco') else despesa.get('imovel', '')[:40] }}...
+                        </td>
+                        <td><span class="badge badge-secondary">{{ despesa.tipo_despesa }}</span></td>
+                        <td style="color: var(--text-secondary);">{{ despesa.motivo_despesa or '-' }}</td>
+                        <td style="color: var(--danger); font-weight: 600;">{{ despesa.valor_previsto|formatar_moeda }}</td>
+                        <td style="color: var(--text-secondary);">{{ despesa.vencimento_previsto|formatar_data }}</td>
+                        <td>
+                            {% if despesa.data_pagamento %}
+                                <span class="badge badge-success">Pago</span>
+                            {% else %}
+                                <span class="badge badge-warning">Pendente</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-muted);">
+            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">💸</div>
+            <h3 style="color: var(--text-secondary);">Nenhuma despesa encontrada</h3>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

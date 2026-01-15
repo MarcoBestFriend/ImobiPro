@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Contratos - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>📋 Contratos</h2>
+            <p>Gerenciamento de contratos de locação</p>
+        </div>
+        <a href="#" class="btn btn-primary">
+            <span>➕</span> Novo Contrato
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card">
+    <form method="get" action="{{ url_for('listar_contratos') }}">
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: var(--spacing-md); align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Status do Contrato</label>
+                <select name="status" class="form-control">
+                    <option value="">Todos</option>
+                    {% for st in config.STATUS_CONTRATO %}
+                    <option value="{{ st }}" {% if status == st %}selected{% endif %}>{{ st }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: var(--spacing-xs);">
+                <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+                <a href="{{ url_for('listar_contratos') }}" class="btn btn-secondary">🔄 Limpar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Estatísticas rápidas -->
+<div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+    <div class="stat-card">
+        <div class="stat-label">Total de Contratos</div>
+        <div class="stat-value" style="font-size: 2rem;">{{ contratos|length }}</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">Ativos</div>
+        <div class="stat-value" style="font-size: 2rem; color: var(--success);">
+            {{ contratos|selectattr('status_contrato', 'equalto', 'Ativo')|list|length }}
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">Prorrogados</div>
+        <div class="stat-value" style="font-size: 2rem; color: var(--info);">
+            {{ contratos|selectattr('status_contrato', 'equalto', 'Prorrogado')|list|length }}
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-label">Encerrados</div>
+        <div class="stat-value" style="font-size: 2rem; color: var(--text-muted);">
+            {{ contratos|selectattr('status_contrato', 'equalto', 'Encerrado')|list|length }}
+        </div>
+    </div>
+</div>
+
+<!-- Lista de contratos -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Lista de Contratos</h3>
+        <span class="badge badge-info">{{ contratos|length }} contratos</span>
+    </div>
+    
+    {% if contratos %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Imóvel</th>
+                        <th>Inquilino</th>
+                        <th>Fiador</th>
+                        <th>Garantia</th>
+                        <th>Valor</th>
+                        <th>Início</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contrato in contratos %}
+                    <tr>
+                        <td style="color: var(--text-muted); font-family: monospace;">
+                            #{{ contrato.id }}
+                        </td>
+                        <td style="color: var(--text-primary); font-weight: 500;">
+                            {% if contrato.get('imovel') %}
+                                {{ contrato.imovel.endereco_completo[:40] }}...
+                            {% else %}
+                                <span style="color: var(--text-muted);">Imóvel não encontrado</span>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--text-secondary);">
+                            {% if contrato.get('inquilino') %}
+                                {{ contrato.inquilino.nome_completo }}
+                            {% else %}
+                                <span style="color: var(--text-muted);">Inquilino não encontrado</span>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--text-secondary); font-size: 0.875rem;">
+                            {% if contrato.get('fiador') %}
+                                {{ contrato.fiador.nome_completo }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge badge-secondary">
+                                {{ contrato.garantia }}
+                            </span>
+                        </td>
+                        <td style="color: var(--success); font-weight: 600;">
+                            {{ contrato.valor_aluguel|formatar_moeda }}
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">
+                                Venc. dia {{ contrato.dia_vencimento }}
+                            </div>
+                        </td>
+                        <td style="color: var(--text-secondary); font-size: 0.875rem;">
+                            {{ contrato.inicio_contrato|formatar_data }}
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ contrato.status_contrato|status_badge }}">
+                                {{ contrato.status_contrato }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="#" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                👁️ Ver
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-muted);">
+            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">📋</div>
+            <h3 style="color: var(--text-secondary); margin-bottom: var(--spacing-sm);">
+                Nenhum contrato encontrado
+            </h3>
+            <p style="margin-bottom: var(--spacing-md);">
+                {% if status %}
+                    Nenhum contrato com status "{{ status }}".
+                {% else %}
+                    Comece criando contratos de locação!
+                {% endif %}
+            </p>
+            <a href="#" class="btn btn-primary">
+                ➕ Criar Primeiro Contrato
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if pessoa else 'Nova' }} Pessoa - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>{{ '✏️ Editar' if pessoa else '➕ Nova' }} Pessoa</h2>
+    <p>{{ 'Atualize as informações' if pessoa else 'Preencha os dados' }} da pessoa</p>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <!-- Dados Básicos -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                👤 Dados Básicos
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Nome Completo *</label>
+                    <input type="text" name="nome_completo" class="form-control" 
+                           placeholder="Ex: João da Silva Santos"
+                           value="{{ pessoa.nome_completo if pessoa else '' }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Situação *</label>
+                    <select name="situacao" class="form-control" required>
+                        {% for sit in config.SITUACOES_PESSOA %}
+                        <option value="{{ sit }}" {% if pessoa and pessoa.situacao == sit %}selected{% endif %}>
+                            {{ sit }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">CPF/CNPJ</label>
+                    <input type="text" name="cpf_cnpj" class="form-control" 
+                           placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                           value="{{ pessoa.cpf_cnpj if pessoa else '' }}">
+                    <small style="color: var(--text-muted); font-size: 0.875rem;">
+                        Campo único - funciona como identificador
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Estado Civil</label>
+                    <select name="estado_civil" class="form-control">
+                        <option value="">Não informado</option>
+                        {% for estado in config.ESTADOS_CIVIS %}
+                        <option value="{{ estado }}" {% if pessoa and pessoa.estado_civil == estado %}selected{% endif %}>
+                            {{ estado }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Contato -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                📞 Contato
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Telefone</label>
+                    <input type="text" name="telefone" class="form-control" 
+                           placeholder="(67) 99999-9999"
+                           value="{{ pessoa.telefone if pessoa else '' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" 
+                           placeholder="exemplo@email.com"
+                           value="{{ pessoa.email if pessoa else '' }}">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Endereço -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                📍 Endereço
+            </h3>
+            
+            <div class="form-group">
+                <label class="form-label">Endereço Completo</label>
+                <input type="text" name="endereco_completo" class="form-control" 
+                       placeholder="Ex: Rua das Flores, 123 - Apto 45 - Centro"
+                       value="{{ pessoa.endereco_completo if pessoa else '' }}">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Cidade</label>
+                <input type="text" name="cidade" class="form-control" 
+                       placeholder="Ex: Campo Grande"
+                       value="{{ pessoa.cidade if pessoa else '' }}">
+            </div>
+        </div>
+        
+        <!-- Dados Patrimoniais -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                💼 Dados Patrimoniais
+            </h3>
+            
+            <div class="form-group">
+                <label class="form-label">Patrimônio Declarado</label>
+                <input type="number" step="0.01" name="patrimonio" class="form-control" 
+                       placeholder="0.00"
+                       value="{{ pessoa.patrimonio if pessoa else '' }}">
+                <small style="color: var(--text-muted); font-size: 0.875rem;">
+                    Informação relevante para análise de fiadores
+                </small>
+            </div>
+        </div>
+        
+        <!-- Dados do Cônjuge -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                💑 Dados do Cônjuge
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Nome do Cônjuge</label>
+                    <input type="text" name="nome_conjuge" class="form-control" 
+                           placeholder="Nome completo do cônjuge"
+                           value="{{ pessoa.nome_conjuge if pessoa else '' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">CPF do Cônjuge</label>
+                    <input type="text" name="cpf_conjuge" class="form-control" 
+                           placeholder="000.000.000-00"
+                           value="{{ pessoa.cpf_conjuge if pessoa else '' }}">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Observações -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                📝 Observações
+            </h3>
+            
+            <div class="form-group">
+                <label class="form-label">Observações Gerais</label>
+                <textarea name="observacoes" class="form-control" rows="4" 
+                          placeholder="Informações adicionais sobre a pessoa...">{{ pessoa.observacoes if pessoa else '' }}</textarea>
+            </div>
+        </div>
+        
+        <!-- Botões -->
+        <div style="display: flex; gap: var(--spacing-md); justify-content: flex-end; padding-top: var(--spacing-md); border-top: 1px solid var(--border);">
+            <a href="{{ url_for('listar_pessoas') }}" class="btn btn-secondary">
+                ← Cancelar
+            </a>
+            <button type="submit" class="btn btn-success">
+                ✓ {{ 'Atualizar' if pessoa else 'Cadastrar' }} Pessoa
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
