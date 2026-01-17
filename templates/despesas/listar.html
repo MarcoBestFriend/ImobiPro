@@ -9,7 +9,7 @@
             <h2>💸 Despesas</h2>
             <p>Gerenciamento de despesas dos imóveis</p>
         </div>
-        <a href="#" class="btn btn-primary">
+        <a href="{{ url_for('nova_despesa') }}" class="btn btn-primary">
             <span>➕</span> Nova Despesa
         </a>
     </div>
@@ -28,7 +28,7 @@
                     {% endfor %}
                 </select>
             </div>
-            
+
             <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-control">
@@ -36,7 +36,7 @@
                     <option value="pendente" {% if status == 'pendente' %}selected{% endif %}>Pendentes</option>
                 </select>
             </div>
-            
+
             <div style="display: flex; gap: var(--spacing-xs);">
                 <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
                 <a href="{{ url_for('listar_despesas') }}" class="btn btn-secondary">🔄 Limpar</a>
@@ -45,13 +45,35 @@
     </form>
 </div>
 
+<!-- Estatísticas rápidas -->
+<div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+    <div class="stat-card">
+        <div class="stat-label">Total de Despesas</div>
+        <div class="stat-value" style="font-size: 2rem;">{{ despesas|length }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Com Data Pagamento</div>
+        <div class="stat-value" style="font-size: 2rem; color: var(--success);">
+            {{ despesas|rejectattr('data_pagamento', 'none')|list|length }}
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Sem Data Pagamento</div>
+        <div class="stat-value" style="font-size: 2rem; color: var(--info);">
+            {{ despesas|selectattr('data_pagamento', 'none')|list|length }}
+        </div>
+    </div>
+</div>
+
 <!-- Lista de despesas -->
 <div class="card">
     <div class="card-header">
         <h3 class="card-title">Lista de Despesas</h3>
         <span class="badge badge-info">{{ despesas|length }} despesas</span>
     </div>
-    
+
     {% if despesas %}
         <div class="table-container">
             <table>
@@ -64,6 +86,7 @@
                         <th>Valor</th>
                         <th>Vencimento</th>
                         <th>Status</th>
+                        <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -71,18 +94,41 @@
                     <tr>
                         <td style="color: var(--text-muted); font-family: monospace;">#{{ despesa.id }}</td>
                         <td style="color: var(--text-primary); font-weight: 500;">
-                            {{ despesa.imovel_endereco[:40] if despesa.get('imovel_endereco') else despesa.get('imovel', '')[:40] }}...
+                            {{ (despesa.imovel_endereco or despesa.get('imovel', ''))[:35] }}...
                         </td>
                         <td><span class="badge badge-secondary">{{ despesa.tipo_despesa }}</span></td>
                         <td style="color: var(--text-secondary);">{{ despesa.motivo_despesa or '-' }}</td>
-                        <td style="color: var(--danger); font-weight: 600;">{{ despesa.valor_previsto|formatar_moeda }}</td>
-                        <td style="color: var(--text-secondary);">{{ despesa.vencimento_previsto|formatar_data }}</td>
+                        <td style="color: var(--danger); font-weight: 600;">
+                            {{ despesa.valor_pago|formatar_moeda }}
+                            {% if despesa.valor_previsto %}
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                Previsto: {{ despesa.valor_previsto|formatar_moeda }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--text-secondary);">{{ despesa.vencimento_previsto|formatar_data if despesa.vencimento_previsto else '-' }}</td>
                         <td>
                             {% if despesa.data_pagamento %}
                                 <span class="badge badge-success">Pago</span>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                    {{ despesa.data_pagamento|formatar_data }}
+                                </div>
                             {% else %}
-                                <span class="badge badge-warning">Pendente</span>
+                                <span class="badge badge-info">Registrado</span>
                             {% endif %}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap;">
+                                <a href="{{ url_for('editar_despesa', id=despesa.id) }}" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                                    ✏️ Editar
+                                </a>
+                                <form method="POST" action="{{ url_for('excluir_despesa', id=despesa.id) }}" style="display: inline;">
+                                    <button type="submit" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;"
+                                            onclick="return confirm('Tem certeza que deseja excluir esta despesa?')">
+                                        🗑️
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -92,7 +138,19 @@
     {% else %}
         <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-muted);">
             <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">💸</div>
-            <h3 style="color: var(--text-secondary);">Nenhuma despesa encontrada</h3>
+            <h3 style="color: var(--text-secondary); margin-bottom: var(--spacing-sm);">
+                Nenhuma despesa encontrada
+            </h3>
+            <p style="margin-bottom: var(--spacing-md);">
+                {% if tipo or status %}
+                    Nenhuma despesa com os filtros selecionados.
+                {% else %}
+                    Comece cadastrando despesas dos seus imóveis!
+                {% endif %}
+            </p>
+            <a href="{{ url_for('nova_despesa') }}" class="btn btn-primary">
+                ➕ Cadastrar Primeira Despesa
+            </a>
         </div>
     {% endif %}
 </div>

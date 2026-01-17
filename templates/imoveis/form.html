@@ -14,8 +14,8 @@
                     </h4>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('imoveis_novo') if not imovel else url_for('imoveis_editar', id=imovel.id) }}">
-                        
+                    <form method="POST" action="{{ url_for('editar_imovel', id=imovel.id) if imovel else url_for('novo_imovel') }}">
+
                         <!-- Informações Básicas -->
                         <div class="row mb-4">
                             <div class="col-md-12">
@@ -24,61 +24,47 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="endereco" class="form-label">Endereço *</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="endereco" 
-                                       name="endereco" 
-                                       value="{{ imovel.endereco if imovel else '' }}"
+                            <div class="col-md-8 mb-3">
+                                <label for="endereco_completo" class="form-label">Endereço Completo *</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="endereco_completo"
+                                       name="endereco_completo"
+                                       value="{{ imovel.endereco_completo if imovel else '' }}"
+                                       placeholder="Rua, número, complemento, bairro"
                                        required>
+                                <small class="text-muted">Ex: Rua das Flores, 123, Apto 101, Centro</small>
                             </div>
 
-                            <div class="col-md-3 mb-3">
-                                <label for="numero" class="form-label">Número *</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="numero" 
-                                       name="numero" 
-                                       value="{{ imovel.numero if imovel else '' }}"
-                                       required>
-                            </div>
-
-                            <div class="col-md-3 mb-3">
-                                <label for="complemento" class="form-label">Complemento</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="complemento" 
-                                       name="complemento" 
-                                       value="{{ imovel.complemento if imovel else '' }}">
+                            <div class="col-md-4 mb-3">
+                                <label for="tipo_imovel" class="form-label">Tipo de Imóvel *</label>
+                                <select class="form-select" id="tipo_imovel" name="tipo_imovel" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="Casa" {{ 'selected' if imovel and imovel.tipo_imovel == 'Casa' else '' }}>Casa</option>
+                                    <option value="Apartamento" {{ 'selected' if imovel and imovel.tipo_imovel == 'Apartamento' else '' }}>Apartamento</option>
+                                    <option value="Sala Comercial" {{ 'selected' if imovel and imovel.tipo_imovel == 'Sala Comercial' else '' }}>Sala Comercial</option>
+                                    <option value="Galpão" {{ 'selected' if imovel and imovel.tipo_imovel == 'Galpão' else '' }}>Galpão</option>
+                                    <option value="Terreno" {{ 'selected' if imovel and imovel.tipo_imovel == 'Terreno' else '' }}>Terreno</option>
+                                    <option value="Kitnet" {{ 'selected' if imovel and imovel.tipo_imovel == 'Kitnet' else '' }}>Kitnet</option>
+                                    <option value="Outro" {{ 'selected' if imovel and imovel.tipo_imovel == 'Outro' else '' }}>Outro</option>
+                                </select>
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label for="bairro" class="form-label">Bairro *</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="bairro" 
-                                       name="bairro" 
-                                       value="{{ imovel.bairro if imovel else '' }}"
-                                       required>
+                                <label for="cidade" class="form-label">Cidade</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="cidade"
+                                       name="cidade"
+                                       value="{{ imovel.cidade if imovel else 'Campo Grande' }}">
                             </div>
 
                             <div class="col-md-4 mb-3">
-                                <label for="cidade" class="form-label">Cidade *</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="cidade" 
-                                       name="cidade" 
-                                       value="{{ imovel.cidade if imovel else '' }}"
-                                       required>
-                            </div>
-
-                            <div class="col-md-2 mb-3">
-                                <label for="estado" class="form-label">Estado *</label>
-                                <select class="form-select" id="estado" name="estado" required>
-                                    <option value="">Selecione...</option>
+                                <label for="estado" class="form-label">Estado</label>
+                                <select class="form-select" id="estado" name="estado">
+                                    <option value="MS" {{ 'selected' if not imovel or imovel.estado == 'MS' else '' }}>MS</option>
                                     <option value="AC" {{ 'selected' if imovel and imovel.estado == 'AC' else '' }}>AC</option>
                                     <option value="AL" {{ 'selected' if imovel and imovel.estado == 'AL' else '' }}>AL</option>
                                     <option value="AP" {{ 'selected' if imovel and imovel.estado == 'AP' else '' }}>AP</option>
@@ -90,7 +76,6 @@
                                     <option value="GO" {{ 'selected' if imovel and imovel.estado == 'GO' else '' }}>GO</option>
                                     <option value="MA" {{ 'selected' if imovel and imovel.estado == 'MA' else '' }}>MA</option>
                                     <option value="MT" {{ 'selected' if imovel and imovel.estado == 'MT' else '' }}>MT</option>
-                                    <option value="MS" {{ 'selected' if imovel and imovel.estado == 'MS' else '' }}>MS</option>
                                     <option value="MG" {{ 'selected' if imovel and imovel.estado == 'MG' else '' }}>MG</option>
                                     <option value="PA" {{ 'selected' if imovel and imovel.estado == 'PA' else '' }}>PA</option>
                                     <option value="PB" {{ 'selected' if imovel and imovel.estado == 'PB' else '' }}>PB</option>
@@ -109,78 +94,26 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-2 mb-3">
-                                <label for="cep" class="form-label">CEP *</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="cep" 
-                                       name="cep" 
+                            <div class="col-md-4 mb-3">
+                                <label for="cep" class="form-label">CEP</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="cep"
+                                       name="cep"
                                        value="{{ imovel.cep if imovel else '' }}"
-                                       placeholder="00000-000"
-                                       required>
-                            </div>
-                        </div>
-
-                        <!-- Características do Imóvel -->
-                        <div class="row mb-4 mt-4">
-                            <div class="col-md-12">
-                                <h5 class="border-bottom pb-2">Características do Imóvel</h5>
+                                       placeholder="00000-000">
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="col-md-3 mb-3">
-                                <label for="tipo" class="form-label">Tipo *</label>
-                                <select class="form-select" id="tipo" name="tipo" required>
-                                    <option value="">Selecione...</option>
-                                    <option value="Casa" {{ 'selected' if imovel and imovel.tipo == 'Casa' else '' }}>Casa</option>
-                                    <option value="Apartamento" {{ 'selected' if imovel and imovel.tipo == 'Apartamento' else '' }}>Apartamento</option>
-                                    <option value="Sala Comercial" {{ 'selected' if imovel and imovel.tipo == 'Sala Comercial' else '' }}>Sala Comercial</option>
-                                    <option value="Galpão" {{ 'selected' if imovel and imovel.tipo == 'Galpão' else '' }}>Galpão</option>
-                                    <option value="Terreno" {{ 'selected' if imovel and imovel.tipo == 'Terreno' else '' }}>Terreno</option>
-                                    <option value="Outro" {{ 'selected' if imovel and imovel.tipo == 'Outro' else '' }}>Outro</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-2 mb-3">
-                                <label for="quartos" class="form-label">Quartos</label>
-                                <input type="number" 
-                                       class="form-control" 
-                                       id="quartos" 
-                                       name="quartos" 
-                                       min="0"
-                                       value="{{ imovel.quartos if imovel else '0' }}">
-                            </div>
-
-                            <div class="col-md-2 mb-3">
-                                <label for="banheiros" class="form-label">Banheiros</label>
-                                <input type="number" 
-                                       class="form-control" 
-                                       id="banheiros" 
-                                       name="banheiros" 
-                                       min="0"
-                                       value="{{ imovel.banheiros if imovel else '0' }}">
-                            </div>
-
-                            <div class="col-md-2 mb-3">
-                                <label for="vagas" class="form-label">Vagas</label>
-                                <input type="number" 
-                                       class="form-control" 
-                                       id="vagas" 
-                                       name="vagas" 
-                                       min="0"
-                                       value="{{ imovel.vagas if imovel else '0' }}">
-                            </div>
-
-                            <div class="col-md-3 mb-3">
-                                <label for="area_total" class="form-label">Área Total (m²)</label>
-                                <input type="number" 
-                                       class="form-control" 
-                                       id="area_total" 
-                                       name="area_total" 
-                                       step="0.01"
-                                       min="0"
-                                       value="{{ imovel.area_total if imovel else '' }}">
+                            <div class="col-md-6 mb-3">
+                                <label for="inscricao_imobiliaria" class="form-label">Inscrição Imobiliária</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="inscricao_imobiliaria"
+                                       name="inscricao_imobiliaria"
+                                       value="{{ imovel.inscricao_imobiliaria if imovel else '' }}"
+                                       placeholder="Número da inscrição municipal">
                             </div>
                         </div>
 
@@ -193,73 +126,67 @@
 
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label for="valor_compra" class="form-label">Valor de Compra</label>
+                                <label for="aluguel_pretendido" class="form-label">Aluguel Pretendido</label>
                                 <div class="input-group">
                                     <span class="input-group-text">R$</span>
-                                    <input type="number" 
-                                           class="form-control" 
-                                           id="valor_compra" 
-                                           name="valor_compra" 
+                                    <input type="number"
+                                           class="form-control"
+                                           id="aluguel_pretendido"
+                                           name="aluguel_pretendido"
                                            step="0.01"
                                            min="0"
-                                           value="{{ imovel.valor_compra if imovel else '' }}">
+                                           value="{{ imovel.aluguel_pretendido if imovel and imovel.aluguel_pretendido else '' }}">
+                                </div>
+                                <small class="text-muted">Valor sugerido para locação</small>
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label for="condominio_sugerido" class="form-label">Condomínio</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="number"
+                                           class="form-control"
+                                           id="condominio_sugerido"
+                                           name="condominio_sugerido"
+                                           step="0.01"
+                                           min="0"
+                                           value="{{ imovel.condominio_sugerido if imovel and imovel.condominio_sugerido else '' }}">
                                 </div>
                             </div>
 
                             <div class="col-md-4 mb-3">
-                                <label for="valor_atual" class="form-label">Valor Atual</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">R$</span>
-                                    <input type="number" 
-                                           class="form-control" 
-                                           id="valor_atual" 
-                                           name="valor_atual" 
-                                           step="0.01"
-                                           min="0"
-                                           value="{{ imovel.valor_atual if imovel else '' }}">
-                                </div>
-                            </div>
-
-                            <div class="col-md-4 mb-3">
-                                <label for="iptu_anual" class="form-label">IPTU Anual</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">R$</span>
-                                    <input type="number" 
-                                           class="form-control" 
-                                           id="iptu_anual" 
-                                           name="iptu_anual" 
-                                           step="0.01"
-                                           min="0"
-                                           value="{{ imovel.iptu_anual if imovel else '' }}">
-                                </div>
+                                <label for="dia_venc_condominio" class="form-label">Dia Vencimento Condomínio</label>
+                                <input type="number"
+                                       class="form-control"
+                                       id="dia_venc_condominio"
+                                       name="dia_venc_condominio"
+                                       min="1"
+                                       max="31"
+                                       value="{{ imovel.dia_venc_condominio if imovel and imovel.dia_venc_condominio else '' }}"
+                                       placeholder="1-31">
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label for="matricula" class="form-label">Matrícula</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="matricula" 
-                                       name="matricula" 
-                                       value="{{ imovel.matricula if imovel else '' }}">
+                                <label for="valor_iptu_anual" class="form-label">IPTU Anual</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="number"
+                                           class="form-control"
+                                           id="valor_iptu_anual"
+                                           name="valor_iptu_anual"
+                                           step="0.01"
+                                           min="0"
+                                           value="{{ imovel.valor_iptu_anual if imovel and imovel.valor_iptu_anual else '' }}">
+                                </div>
                             </div>
 
                             <div class="col-md-4 mb-3">
-                                <label for="inscricao_municipal" class="form-label">Inscrição Municipal</label>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="inscricao_municipal" 
-                                       name="inscricao_municipal" 
-                                       value="{{ imovel.inscricao_municipal if imovel else '' }}">
-                            </div>
-
-                            <div class="col-md-4 mb-3">
-                                <label for="status" class="form-label">Status *</label>
-                                <select class="form-select" id="status" name="status" required>
-                                    <option value="disponivel" {{ 'selected' if not imovel or imovel.status == 'disponivel' else '' }}>Disponível</option>
-                                    <option value="ocupado" {{ 'selected' if imovel and imovel.status == 'ocupado' else '' }}>Ocupado</option>
-                                    <option value="manutencao" {{ 'selected' if imovel and imovel.status == 'manutencao' else '' }}>Em Manutenção</option>
+                                <label for="forma_pagamento_iptu" class="form-label">Forma Pagamento IPTU</label>
+                                <select class="form-select" id="forma_pagamento_iptu" name="forma_pagamento_iptu">
+                                    <option value="Anual" {{ 'selected' if not imovel or imovel.forma_pagamento_iptu == 'Anual' else '' }}>Anual</option>
+                                    <option value="Mensal" {{ 'selected' if imovel and imovel.forma_pagamento_iptu == 'Mensal' else '' }}>Mensal</option>
                                 </select>
                             </div>
                         </div>
@@ -274,9 +201,9 @@
                         <div class="row">
                             <div class="col-md-12 mb-3">
                                 <label for="observacoes" class="form-label">Observações</label>
-                                <textarea class="form-control" 
-                                          id="observacoes" 
-                                          name="observacoes" 
+                                <textarea class="form-control"
+                                          id="observacoes"
+                                          name="observacoes"
                                           rows="4">{{ imovel.observacoes if imovel else '' }}</textarea>
                             </div>
                         </div>
@@ -287,7 +214,7 @@
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-save"></i> Salvar
                                 </button>
-                                <a href="{{ url_for('imoveis') }}" class="btn btn-secondary">
+                                <a href="{{ url_for('listar_imoveis') }}" class="btn btn-secondary">
                                     <i class="fas fa-times"></i> Cancelar
                                 </a>
                             </div>
