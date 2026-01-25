@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+
+{% block title %}Exportar e Importar Dados - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>📦 Exportar e Importar Dados</h2>
+            <p>Backup e restauracao dos dados do sistema</p>
+        </div>
+    </div>
+</div>
+
+<!-- Exportar Dados -->
+<div class="card" style="margin-bottom: var(--spacing-lg);">
+    <div class="card-header">
+        <h3 class="card-title">📤 Exportar Dados</h3>
+    </div>
+    <div style="padding: var(--spacing-md);">
+        <p style="color: var(--text-secondary); margin-bottom: var(--spacing-md);">
+            Faca download de todos os dados do sistema em um arquivo ZIP contendo arquivos CSV.
+            Este backup pode ser usado para restaurar os dados ou migrar para outro servidor.
+        </p>
+        <div style="background: var(--bg-tertiary); padding: var(--spacing-md); border-radius: var(--radius); margin-bottom: var(--spacing-md);">
+            <strong style="color: var(--text-primary);">O arquivo ZIP contera:</strong>
+            <ul style="color: var(--text-secondary); margin: var(--spacing-sm) 0 0 var(--spacing-md); padding: 0;">
+                <li>imoveis.csv - Cadastro de imoveis</li>
+                <li>pessoas.csv - Cadastro de pessoas</li>
+                <li>contratos.csv - Contratos de locacao</li>
+                <li>despesas.csv - Despesas dos imoveis</li>
+                <li>receitas.csv - Receitas de alugueis</li>
+                <li>LEIA-ME.txt - Instrucoes de importacao</li>
+            </ul>
+        </div>
+        <a href="{{ url_for('exportar_dados') }}" class="btn btn-success">
+            ⬇️ Baixar Backup (ZIP)
+        </a>
+    </div>
+</div>
+
+<!-- Importar Dados -->
+<div class="card" style="margin-bottom: var(--spacing-lg);">
+    <div class="card-header">
+        <h3 class="card-title">📥 Importar Dados</h3>
+    </div>
+    <div style="padding: var(--spacing-md);">
+        <div style="background: var(--danger); background-opacity: 0.1; border: 1px solid var(--danger); padding: var(--spacing-md); border-radius: var(--radius); margin-bottom: var(--spacing-md);">
+            <strong style="color: var(--danger);">⚠️ ATENCAO:</strong>
+            <p style="color: var(--text-secondary); margin: var(--spacing-xs) 0 0 0;">
+                A importacao <strong>SUBSTITUI</strong> todos os dados existentes no sistema.
+                Faca um backup antes de importar para nao perder dados.
+            </p>
+        </div>
+
+        <form method="POST" action="{{ url_for('importar_dados') }}" enctype="multipart/form-data">
+            <div class="form-group">
+                <label class="form-label">Selecione o arquivo ZIP</label>
+                <input type="file" name="arquivo" class="form-control" accept=".zip" required
+                       style="padding: var(--spacing-sm);">
+                <small style="color: var(--text-muted);">
+                    Apenas arquivos .zip exportados pelo ImobiPro
+                </small>
+            </div>
+            <button type="submit" class="btn btn-warning"
+                    onclick="return confirm('ATENCAO: Todos os dados atuais serao SUBSTITUIDOS pelos dados do arquivo.\n\nVoce fez backup dos dados atuais?\n\nDeseja continuar?')">
+                ⬆️ Importar Dados
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Guia de Formato dos Arquivos -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">📋 Guia de Formato dos Arquivos CSV</h3>
+    </div>
+    <div style="padding: var(--spacing-md);">
+        <p style="color: var(--text-secondary); margin-bottom: var(--spacing-md);">
+            Se voce precisa editar os arquivos CSV manualmente ou criar dados de importacao,
+            siga as especificacoes abaixo para cada tabela.
+        </p>
+
+        <!-- Imoveis -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h4 style="color: var(--accent); margin-bottom: var(--spacing-sm);">🏠 imoveis.csv</h4>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Coluna</th>
+                            <th>Tipo</th>
+                            <th>Obrigatorio</th>
+                            <th>Exemplo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>id</code></td>
+                            <td>Inteiro</td>
+                            <td>Sim</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td><code>endereco_completo</code></td>
+                            <td>Texto</td>
+                            <td>Sim</td>
+                            <td>Rua das Flores, 123, Centro</td>
+                        </tr>
+                        <tr>
+                            <td><code>tipo_imovel</code></td>
+                            <td>Texto</td>
+                            <td>Sim</td>
+                            <td>Casa, Apartamento, Sala Comercial</td>
+                        </tr>
+                        <tr>
+                            <td><code>ocupado</code></td>
+                            <td>Texto</td>
+                            <td>Sim</td>
+                            <td>Sim ou Nao</td>
+                        </tr>
+                        <tr>
+                            <td><code>valor_iptu_anual</code></td>
+                            <td>Decimal</td>
+                            <td>Nao</td>
+                            <td>1200.50</td>
+                        </tr>
+                        <tr>
+                            <td><code>forma_pagamento_iptu</code></td>
+                            <td>Texto</td>
+                            <td>Sim</td>
+                            <td>Anual ou Mensal</td>
+                        </tr>
+                        <tr>
+                            <td><code>aluguel_pretendido</code></td>
+                            <td>Decimal</td>
+                            <td>Nao</td>
+                            <td>1500.00</td>
+                        </tr>
+                        <tr>
+                            <td><code>condominio_sugerido</code></td>
+                            <td>Decimal</td>
+                            <td>Nao</td>
+                            <td>450.00</td>
+                        </tr>
+                        <tr>
+                            <td><code>dia_venc_condominio</code></td>
+                            <td>Inteiro</td>
+                            <td>Nao</td>
+                            <td>10 (dia do mes)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pessoas -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h4 style="color: var(--accent); margin-bottom: var(--spacing-sm);">👥 pessoas.csv</h4>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Coluna</th>
+                            <th>Tipo</th>
+                            <th>Obrigatorio</th>
+                            <th>Exemplo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>id</code></td>
+                            <td>Inteiro</td>
+                            <td>Sim</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td><code>nome_completo</code></td>
+                            <td>Texto</td>
+                            <td>Sim</td>
+                            <td>Joao da Silva</td>
+                        </tr>
+                        <tr>
+                            <td><code>situacao</code></td>
+                            <td>Texto</td>
+                            <td>Sim</td>
+                            <td>Inquilino, Fiador ou Ambos</td>
+                        </tr>
+                        <tr>
+                            <td><code>cpf_cnpj</code></td>
+                            <td>Texto</td>
+                            <td>Nao</td>
+                            <td>123.456.789-00</td>
+                        </tr>
+                        <tr>
+                            <td><code>telefone</code></td>
+                            <td>Texto</td>
+                            <td>Nao</td>
+                            <td>(67) 99999-9999</td>
+                        </tr>
+                        <tr>
+                            <td><code>email</code></td>
+                            <td>Texto</td>
+                            <td>Nao</td>
+                            <td>joao@email.com</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Contratos -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h4 style="color: var(--accent); margin-bottom: var(--spacing-sm);">📋 contratos.csv</h4>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Coluna</th>
+                            <th>Tipo</th>
+                            <th>Obrigatorio</th>
+                            <th>Exemplo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>id</code></td>
+                            <td>Inteiro</td>
+                            <td>Sim</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td><code>id_imovel</code></td>
+                            <td>Inteiro</td>
+                            <td>Sim</td>
+                            <td>1 (deve existir em imoveis)</td>
+                        </tr>
+                        <tr>
+                            <td><code>id_inquilino</code></td>
+                            <td>Inteiro</td>
+                            <td>Sim</td>
+                            <td>1 (deve existir em pessoas)</td>
+                        </tr>
+                        <tr>
+                            <td><code>id_fiador</code></td>
+                            <td>Inteiro</td>
+                            <td>Nao</td>
+                            <td>2 (deve existir em pessoas)</td>
+                        </tr>
+                        <tr>
+                            <td><code>garantia</code></td>
+                            <td>Texto</td>
+                            <td>Sim</td>
+                            <td>antecipado, nenhuma, fianca, caucao</td>
+                        </tr>
+                        <tr>
+                            <td><code>inicio_contrato</code></td>
+                            <td>Data</td>
+                            <td>Sim</td>
+                            <td>2026-01-01</td>
+                        </tr>
+                        <tr>
+                            <td><code>fim_contrato</code></td>
+                            <td>Data</td>
+                            <td>Nao</td>
+                            <td>2027-01-01</td>
+                        </tr>
+                        <tr>
+                            <td><code>valor_aluguel</code></td>
+                            <td>Decimal</td>
+                            <td>Sim</td>
+                            <td>1500.00</td>
+                        </tr>
+                        <tr>
+                            <td><code>dia_vencimento</code></td>
+                            <td>Inteiro</td>
+                            <td>Sim</td>
+                            <td>10 (dia do mes)</td>
+                        </tr>
+                        <tr>
+                            <td><code>status_contrato</code></td>
+                            <td>Texto</td>
+                            <td>Sim</td>
+                            <td>Ativo, Prorrogado, Encerrado, Rescindido</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Despesas -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h4 style="color: var(--accent); margin-bottom: var(--spacing-sm);">💸 despesas.csv</h4>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Coluna</th>
+                            <th>Tipo</th>
+                            <th>Obrigatorio</th>
+                            <th>Exemplo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>id</code></td>
+                            <td>Inteiro</td>
+                            <td>Sim</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td><code>id_imovel</code></td>
+                            <td>Inteiro</td>
+                            <td>Sim</td>
+                            <td>1 (deve existir em imoveis)</td>
+                        </tr>
+                        <tr>
+                            <td><code>tipo_despesa</code></td>
+                            <td>Texto</td>
+                            <td>Sim</td>
+                            <td>Manutencao, Condominio, Reforma, IPTU, Outros</td>
+                        </tr>
+                        <tr>
+                            <td><code>motivo_despesa</code></td>
+                            <td>Texto</td>
+                            <td>Nao</td>
+                            <td>Troca de torneira</td>
+                        </tr>
+                        <tr>
+                            <td><code>valor_previsto</code></td>
+                            <td>Decimal</td>
+                            <td>Sim</td>
+                            <td>500.00</td>
+                        </tr>
+                        <tr>
+                            <td><code>valor_pago</code></td>
+                            <td>Decimal</td>
+                            <td>Nao</td>
+                            <td>500.00</td>
+                        </tr>
+                        <tr>
+                            <td><code>vencimento_previsto</code></td>
+                            <td>Data</td>
+                            <td>Nao</td>
+                            <td>2026-01-15</td>
+                        </tr>
+                        <tr>
+                            <td><code>data_pagamento</code></td>
+                            <td>Data</td>
+                            <td>Nao</td>
+                            <td>2026-01-14</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Receitas -->
+        <div style="margin-bottom: var(--spacing-md);">
+            <h4 style="color: var(--accent); margin-bottom: var(--spacing-sm);">💰 receitas.csv</h4>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Coluna</th>
+                            <th>Tipo</th>
+                            <th>Obrigatorio</th>
+                            <th>Exemplo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>id</code></td>
+                            <td>Inteiro</td>
+                            <td>Sim</td>
+                            <td>1</td>
+                        </tr>
+                        <tr>
+                            <td><code>id_contrato</code></td>
+                            <td>Inteiro</td>
+                            <td>Sim</td>
+                            <td>1 (deve existir em contratos)</td>
+                        </tr>
+                        <tr>
+                            <td><code>mes_referencia</code></td>
+                            <td>Data</td>
+                            <td>Sim</td>
+                            <td>2026-01-01</td>
+                        </tr>
+                        <tr>
+                            <td><code>aluguel_devido</code></td>
+                            <td>Decimal</td>
+                            <td>Sim</td>
+                            <td>1500.00</td>
+                        </tr>
+                        <tr>
+                            <td><code>condominio_devido</code></td>
+                            <td>Decimal</td>
+                            <td>Nao</td>
+                            <td>450.00</td>
+                        </tr>
+                        <tr>
+                            <td><code>iptu_devido</code></td>
+                            <td>Decimal</td>
+                            <td>Nao</td>
+                            <td>100.00</td>
+                        </tr>
+                        <tr>
+                            <td><code>valor_total_devido</code></td>
+                            <td>Decimal</td>
+                            <td>Sim</td>
+                            <td>2050.00</td>
+                        </tr>
+                        <tr>
+                            <td><code>vencimento_previsto</code></td>
+                            <td>Data</td>
+                            <td>Sim</td>
+                            <td>2026-01-10</td>
+                        </tr>
+                        <tr>
+                            <td><code>status</code></td>
+                            <td>Texto</td>
+                            <td>Sim</td>
+                            <td>Pendente, Recebido, Atrasado, Cancelado</td>
+                        </tr>
+                        <tr>
+                            <td><code>data_recebimento</code></td>
+                            <td>Data</td>
+                            <td>Nao</td>
+                            <td>2026-01-10</td>
+                        </tr>
+                        <tr>
+                            <td><code>valor_recebido</code></td>
+                            <td>Decimal</td>
+                            <td>Nao</td>
+                            <td>2050.00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Dicas -->
+        <div style="background: var(--bg-tertiary); padding: var(--spacing-md); border-radius: var(--radius); margin-top: var(--spacing-lg);">
+            <h4 style="color: var(--text-primary); margin-bottom: var(--spacing-sm);">💡 Dicas Importantes</h4>
+            <ul style="color: var(--text-secondary); margin: 0; padding-left: var(--spacing-md);">
+                <li>Use sempre UTF-8 como codificacao do arquivo</li>
+                <li>Datas devem estar no formato <code>AAAA-MM-DD</code> (ex: 2026-01-20)</li>
+                <li>Valores decimais usam ponto como separador (ex: 1500.50)</li>
+                <li>Campos vazios podem ficar em branco ou com a palavra "None"</li>
+                <li>Mantenha os IDs consistentes entre as tabelas relacionadas</li>
+                <li>A primeira linha deve conter os nomes das colunas</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

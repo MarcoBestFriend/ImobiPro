@@ -1,0 +1,19 @@
+id,id_imovel,id_inquilino,id_fiador,garantia,inicio_contrato,fim_contrato,valor_aluguel,dia_vencimento,status_contrato,observacoes,indice_reajuste,data_base_reajuste,ultimo_reajuste,percentual_ultimo_reajuste,data_cadastro,data_atualizacao
+1,25,2,15,fiança,2020-08-04,2021-08-04,2200.0,4,Encerrado,Imóvel pintado antes da locação,IGPM,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+2,1,3,7,antecipado,2025-01-01,2026-01-01,3000.0,1,Prorrogado,Faltando uma telha na cozinha,IGPM,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+3,23,7,,caução,2025-12-31,2026-12-31,4000.0,31,Ativo,Tudo em perfeita ordem,IGPM,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+4,7,8,,caução,2025-01-28,2026-01-28,2200.0,28,Rescindido,Caução depositada no banco Master,IGPM,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+5,4,9,11,antecipado,2025-08-26,2026-08-26,3000.0,26,Ativo,Já pagou os três primeiros meses,IGPM,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+6,8,23,8,antecipado,2025-03-06,2026-03-06,4000.0,6,Ativo,Pagamento até dia 5 do mês,IGPM,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+7,6,12,10,nenhuma,2025-05-14,2026-05-14,3200.0,14,Ativo,Filha da Dona Conceição,IGPM,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+8,21,14,,caução,2025-06-08,2026-06-08,400.0,8,Ativo,Três meses de caução depositadas no Banco Master,IGPM,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+9,5,8,23,fiança,2025-07-14,2026-07-14,3202.0,14,Ativo,"Caio, o Fiador, tem negócios em Mogi das Cruzes-SP.",IGPM,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+10,19,2,,caução,2025-11-24,2026-11-24,2438.0,24,Ativo,,IGPM,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+11,22,19,,caução,2025-07-29,2026-07-29,3200.0,29,Ativo,,IGPM,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+12,10,24,,caução,2025-09-17,2026-09-17,2200.0,17,Ativo,,IGPM,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+13,13,17,,caução,2025-11-23,2026-11-23,2157.0,23,Ativo,,IGPM,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+14,15,18,,caução,2025-04-15,2026-04-15,499.0,15,Ativo,,IGPM,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+15,24,7,,caução,2025-12-12,2026-12-12,1800.0,12,Ativo,,IGPM,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+16,7,15,,antecipado,2026-01-01,2026-12-31,11000.0,4,Ativo,,IGPM,2026-12-31,,,2026-01-17 21:36:02,2026-01-17 21:36:02
+17,12,23,10,fiança,2026-01-20,2027-01-19,1200.0,20,Ativo,,IGPM,2027-01-19,,,2026-01-19 22:42:01,2026-01-19 22:42:01
+18,20,27,20,fiança,2022-01-02,2026-05-04,25000.0,1,Ativo,,IGPM,2027-01-02,,,2026-01-20 13:57:32,2026-01-20 13:57:32

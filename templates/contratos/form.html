@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if contrato else 'Novo' }} Contrato - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>{{ '✏️ Editar' if contrato else '➕ Novo' }} Contrato</h2>
+    <p>{{ 'Atualize as informações' if contrato else 'Preencha os dados' }} do contrato de locação</p>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <!-- Seleção de Imóvel -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                🏠 Imóvel
+            </h3>
+            
+            <div class="form-group">
+                <label class="form-label">Selecione o Imóvel *</label>
+                <select name="id_imovel" class="form-control" required onchange="preencherValores(this)">
+                    <option value="">-- Selecione um imóvel --</option>
+                    {% for imovel in imoveis_disponiveis %}
+                    <option value="{{ imovel.id }}" 
+                            data-aluguel="{{ imovel.aluguel_pretendido }}"
+                            data-condominio="{{ imovel.condominio_sugerido or 0 }}"
+                            data-iptu="{{ imovel.valor_iptu_anual or 0 }}"
+                            data-forma-iptu="{{ imovel.forma_pagamento_iptu }}"
+                            data-dia-venc="{{ imovel.dia_venc_condominio or 10 }}"
+                            {% if contrato and contrato.id_imovel == imovel.id %}selected{% endif %}>
+                        {{ imovel.endereco_completo }} - {{ imovel.aluguel_pretendido|formatar_moeda }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <small style="color: var(--text-muted); font-size: 0.875rem;">
+                    {% if contrato %}
+                        Imóvel atual do contrato (pode alterar)
+                    {% else %}
+                        Apenas imóveis disponíveis são exibidos
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+        
+        <!-- Inquilino e Fiador -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                👥 Locatário
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Inquilino *</label>
+                    <select name="id_inquilino" class="form-control" required>
+                        <option value="">-- Selecione o inquilino --</option>
+                        {% for pessoa in inquilinos %}
+                        <option value="{{ pessoa.id }}" {% if contrato and contrato.id_inquilino == pessoa.id %}selected{% endif %}>
+                            {{ pessoa.nome_completo }}{% if pessoa.cpf_cnpj %} - {{ pessoa.cpf_cnpj }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Tipo de Garantia *</label>
+                    <select name="garantia" id="garantia" class="form-control" required onchange="toggleFiador()">
+                        {% for tipo in config.TIPOS_GARANTIA %}
+                        <option value="{{ tipo }}" {% if contrato and contrato.garantia == tipo %}selected{% endif %}>
+                            {{ tipo.capitalize() }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group" id="campo-fiador" style="display: none;">
+                <label class="form-label">Fiador</label>
+                <select name="id_fiador" class="form-control">
+                    <option value="">-- Selecione o fiador --</option>
+                    {% for pessoa in fiadores %}
+                    <option value="{{ pessoa.id }}" {% if contrato and contrato.id_fiador == pessoa.id %}selected{% endif %}>
+                        {{ pessoa.nome_completo }}{% if pessoa.cpf_cnpj %} - {{ pessoa.cpf_cnpj }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <small style="color: var(--warning); font-size: 0.875rem;">
+                    ⚠️ Fiador é obrigatório quando a garantia for "fiança"
+                </small>
+            </div>
+        </div>
+        
+        <!-- Datas do Contrato -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                📅 Período
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Data de Início *</label>
+                    <input type="date" name="inicio_contrato" class="form-control" 
+                           value="{{ contrato.inicio_contrato if contrato else '' }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Data de Término</label>
+                    <input type="date" name="fim_contrato" class="form-control" 
+                           value="{{ contrato.fim_contrato if contrato else '' }}">
+                    <small style="color: var(--text-muted); font-size: 0.875rem;">
+                        Deixe em branco para contrato por tempo indeterminado
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Valores -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-border: 1px solid var(--border);">
+                💰 Valores
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Valor do Aluguel *</label>
+                    <input type="number" step="0.01" name="valor_aluguel" id="valor_aluguel" class="form-control" 
+                           placeholder="0.00"
+                           value="{{ contrato.valor_aluguel if contrato else '' }}" required>
+                    <small style="color: var(--text-muted); font-size: 0.875rem;">
+                        Será preenchido automaticamente ao selecionar o imóvel
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Dia de Vencimento *</label>
+                    <input type="number" min="1" max="31" name="dia_vencimento" id="dia_vencimento" class="form-control" 
+                           placeholder="Ex: 10"
+                           value="{{ contrato.dia_vencimento if contrato else '10' }}" required>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Reajuste -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                📈 Reajuste
+            </h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Índice de Reajuste</label>
+                    <select name="indice_reajuste" class="form-control">
+                        <option value="IGPM" {% if not contrato or contrato.indice_reajuste == 'IGPM' %}selected{% endif %}>IGPM</option>
+                        <option value="IPCA" {% if contrato and contrato.indice_reajuste == 'IPCA' %}selected{% endif %}>IPCA</option>
+                        <option value="IGP-M" {% if contrato and contrato.indice_reajuste == 'IGP-M' %}selected{% endif %}>IGP-M</option>
+                        <option value="Percentual Fixo" {% if contrato and contrato.indice_reajuste == 'Percentual Fixo' %}selected{% endif %}>Percentual Fixo</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Data Base para Reajuste</label>
+                    <input type="date" name="data_base_reajuste" class="form-control" 
+                           value="{{ contrato.data_base_reajuste if contrato else '' }}">
+                    <small style="color: var(--text-muted); font-size: 0.875rem;">
+                        Data a partir da qual o reajuste pode ser aplicado
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status e Observações -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                📋 Informações Adicionais
+            </h3>
+            
+            <div class="form-group">
+                <label class="form-label">Status do Contrato</label>
+                <select name="status_contrato" class="form-control">
+                    {% for status in config.STATUS_CONTRATO %}
+                    <option value="{{ status }}" {% if not contrato and status == 'Ativo' %}selected{% elif contrato and contrato.status_contrato == status %}selected{% endif %}>
+                        {{ status }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Observações</label>
+                <textarea name="observacoes" class="form-control" rows="4" 
+                          placeholder="Informações adicionais sobre o contrato...">{{ contrato.observacoes if contrato else '' }}</textarea>
+            </div>
+        </div>
+        
+        <!-- Botões -->
+        <div style="display: flex; gap: var(--spacing-md); justify-content: flex-end; padding-top: var(--spacing-md); border-top: 1px solid var(--border);">
+            <a href="{{ url_for('listar_contratos') }}" class="btn btn-secondary">
+                ← Cancelar
+            </a>
+            <button type="submit" class="btn btn-success">
+                ✓ {{ 'Atualizar' if contrato else 'Cadastrar' }} Contrato
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Mostrar/ocultar campo de fiador baseado na garantia
+function toggleFiador() {
+    const garantia = document.getElementById('garantia').value;
+    const campoFiador = document.getElementById('campo-fiador');
+    
+    if (garantia === 'fiança') {
+        campoFiador.style.display = 'block';
+        campoFiador.querySelector('select').required = true;
+    } else {
+        campoFiador.style.display = 'none';
+        campoFiador.querySelector('select').required = false;
+    }
+}
+
+// Preencher valores automaticamente ao selecionar imóvel
+function preencherValores(select) {
+    const option = select.options[select.selectedIndex];
+    if (option.value) {
+        document.getElementById('valor_aluguel').value = option.dataset.aluguel || '';
+        document.getElementById('dia_vencimento').value = option.dataset.diaVenc || '10';
+    }
+}
+
+// Executar ao carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    toggleFiador();
+});
+</script>
+
+{% endblock %}

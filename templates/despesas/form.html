@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if despesa else 'Nova' }} Despesa - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>{{ '✏️ Editar' if despesa else '➕ Nova' }} Despesa</h2>
+    <p>{{ 'Atualize as informações' if despesa else 'Cadastre uma nova' }} despesa do imóvel</p>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <!-- Imóvel -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                🏠 Imóvel
+            </h3>
+
+            <div class="form-group">
+                <label class="form-label">Selecione o Imóvel *</label>
+                <select name="id_imovel" class="form-control" required>
+                    <option value="">-- Selecione um imóvel --</option>
+                    {% for imovel in imoveis %}
+                    <option value="{{ imovel.id }}" {% if despesa and despesa.id_imovel == imovel.id %}selected{% endif %}>
+                        {{ imovel.endereco_completo }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Tipo e Descrição -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                📋 Detalhes da Despesa
+            </h3>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Tipo de Despesa *</label>
+                    <select name="tipo_despesa" class="form-control" required>
+                        <option value="">-- Selecione --</option>
+                        {% for tipo in config.TIPOS_DESPESA %}
+                        <option value="{{ tipo }}" {% if despesa and despesa.tipo_despesa == tipo %}selected{% endif %}>
+                            {{ tipo }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Mês de Referência</label>
+                    <input type="date" name="mes_referencia" class="form-control"
+                           value="{{ despesa.mes_referencia if despesa else '' }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Descrição/Motivo</label>
+                <input type="text" name="motivo_despesa" class="form-control"
+                       placeholder="Ex: Troca de torneira, Pintura externa..."
+                       value="{{ despesa.motivo_despesa if despesa else '' }}">
+            </div>
+        </div>
+
+        <!-- Valores -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                💰 Valores
+            </h3>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Valor Previsto *</label>
+                    <input type="number" step="0.01" min="0" name="valor_previsto" class="form-control"
+                           placeholder="0.00"
+                           value="{{ despesa.valor_previsto if despesa else '' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Valor Pago</label>
+                    <input type="number" step="0.01" min="0" name="valor_pago" class="form-control"
+                           placeholder="0.00"
+                           value="{{ despesa.valor_pago if despesa and despesa.valor_pago else '' }}">
+                    <small style="color: var(--text-muted); font-size: 0.875rem;">
+                        Preencha quando efetuar o pagamento
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Datas -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                📅 Datas
+            </h3>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Data de Vencimento</label>
+                    <input type="date" name="vencimento_previsto" class="form-control"
+                           value="{{ despesa.vencimento_previsto if despesa else '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Data de Pagamento</label>
+                    <input type="date" name="data_pagamento" class="form-control"
+                           value="{{ despesa.data_pagamento if despesa and despesa.data_pagamento else '' }}">
+                    <small style="color: var(--text-muted); font-size: 0.875rem;">
+                        Preencha quando efetuar o pagamento
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Observações -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                📝 Observações
+            </h3>
+
+            <div class="form-group">
+                <label class="form-label">Observações</label>
+                <textarea name="observacoes" class="form-control" rows="3"
+                          placeholder="Informações adicionais...">{{ despesa.observacoes if despesa else '' }}</textarea>
+            </div>
+        </div>
+
+        <!-- Botões -->
+        <div style="display: flex; gap: var(--spacing-md); justify-content: flex-end; padding-top: var(--spacing-md); border-top: 1px solid var(--border);">
+            <a href="{{ url_for('listar_despesas') }}" class="btn btn-secondary">
+                ← Cancelar
+            </a>
+            <button type="submit" class="btn btn-success">
+                ✓ {{ 'Atualizar' if despesa else 'Cadastrar' }} Despesa
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

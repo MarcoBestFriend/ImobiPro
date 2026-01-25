@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Receitas - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>💰 Receitas</h2>
+            <p>Gerenciamento de receitas e aluguéis</p>
+        </div>
+        <div style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
+            <a href="{{ url_for('nova_receita') }}" class="btn btn-primary">
+                <span>➕</span> Nova Receita
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Botão de Geração Automática -->
+<div class="card" style="margin-bottom: var(--spacing-md);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-md);">
+        <div>
+            <h4 style="margin: 0; color: var(--text-primary);">⚙️ Faturamento Automático</h4>
+            <small style="color: var(--text-muted);">Gere as receitas de aluguel para todos os contratos ativos</small>
+        </div>
+        <div style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
+            <form method="POST" action="{{ url_for('gerar_faturamento_mensal') }}" style="display: inline;">
+                <button type="submit" class="btn btn-success"
+                        onclick="return confirm('Isso irá gerar receitas de aluguel para todos os contratos ativos.\n\nSerão incluídos:\n- Valor do aluguel\n- Condomínio (se cadastrado)\n- IPTU mensal (se forma de pagamento for mensal)\n\nReferência: Mês corrente.\n\nDeseja continuar?')">
+                    📋 Gerar Faturamento do Mês
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card">
+    <form method="get" action="{{ url_for('listar_receitas') }}">
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: var(--spacing-md); align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="pendente" {% if status == 'pendente' %}selected{% endif %}>Pendentes</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: var(--spacing-xs);">
+                <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+                <a href="{{ url_for('listar_receitas') }}" class="btn btn-secondary">🔄 Limpar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Estatísticas rápidas -->
+<div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+    <div class="stat-card">
+        <div class="stat-label">Total de Receitas</div>
+        <div class="stat-value" style="font-size: 2rem;">{{ receitas|length }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Recebidas</div>
+        <div class="stat-value" style="font-size: 2rem; color: var(--success);">
+            {{ receitas|selectattr('status', 'equalto', 'Recebido')|list|length }}
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Pendentes</div>
+        <div class="stat-value" style="font-size: 2rem; color: var(--warning);">
+            {{ receitas|selectattr('status', 'equalto', 'Pendente')|list|length }}
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Atrasadas</div>
+        <div class="stat-value" style="font-size: 2rem; color: var(--danger);">
+            {{ receitas|selectattr('status', 'equalto', 'Atrasado')|list|length }}
+        </div>
+    </div>
+</div>
+
+<!-- Lista de receitas -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Lista de Receitas</h3>
+        <span class="badge badge-info">{{ receitas|length }} receitas</span>
+    </div>
+
+    {% if receitas %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Imóvel</th>
+                        <th>Inquilino</th>
+                        <th>Mês Ref.</th>
+                        <th>Valor Total</th>
+                        <th>Vencimento</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for receita in receitas %}
+                    <tr>
+                        <td style="color: var(--text-muted); font-family: monospace;">#{{ receita.id }}</td>
+                        <td style="color: var(--text-primary); font-weight: 500;">
+                            {{ (receita.imovel_endereco or '')[:30] }}...
+                        </td>
+                        <td style="color: var(--text-secondary);">{{ receita.inquilino_nome or '-' }}</td>
+                        <td style="color: var(--text-secondary);">{{ receita.mes_referencia|formatar_data }}</td>
+                        <td style="color: var(--success); font-weight: 600;">
+                            {{ receita.valor_total_devido|formatar_moeda }}
+                            {% if receita.valor_recebido %}
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                Recebido: {{ receita.valor_recebido|formatar_moeda }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--text-secondary);">{{ receita.vencimento_previsto|formatar_data }}</td>
+                        <td>
+                            {% if receita.status == 'Recebido' %}
+                                <span class="badge badge-success">{{ receita.status }}</span>
+                                {% if receita.data_recebimento %}
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                    {{ receita.data_recebimento|formatar_data }}
+                                </div>
+                                {% endif %}
+                            {% elif receita.status == 'Atrasado' %}
+                                <span class="badge badge-danger">{{ receita.status }}</span>
+                            {% elif receita.status == 'Cancelado' %}
+                                <span class="badge badge-secondary">{{ receita.status }}</span>
+                            {% else %}
+                                <span class="badge badge-warning">{{ receita.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap;">
+                                {% if receita.status == 'Pendente' or receita.status == 'Atrasado' %}
+                                <form method="POST" action="{{ url_for('receber_receita', id=receita.id) }}" style="display: inline;">
+                                    <button type="submit" class="btn btn-success" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;"
+                                            onclick="return confirm('Confirma o recebimento desta receita?')">
+                                        ✓ Receber
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <a href="{{ url_for('editar_receita', id=receita.id) }}" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                                    ✏️ Editar
+                                </a>
+                                <form method="POST" action="{{ url_for('excluir_receita', id=receita.id) }}" style="display: inline;">
+                                    <button type="submit" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;"
+                                            onclick="return confirm('Tem certeza que deseja excluir esta receita?')">
+                                        🗑️
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-muted);">
+            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">💰</div>
+            <h3 style="color: var(--text-secondary); margin-bottom: var(--spacing-sm);">
+                Nenhuma receita encontrada
+            </h3>
+            <p style="margin-bottom: var(--spacing-md);">
+                {% if status %}
+                    Nenhuma receita com os filtros selecionados.
+                {% else %}
+                    Comece lançando receitas dos seus contratos!
+                {% endif %}
+            </p>
+            <a href="{{ url_for('nova_receita') }}" class="btn btn-primary">
+                ➕ Lançar Primeira Receita
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

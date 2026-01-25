@@ -1,0 +1,28 @@
+id,endereco_completo,inscricao_imobiliaria,tipo_imovel,ocupado,valor_iptu_anual,forma_pagamento_iptu,aluguel_pretendido,condominio_sugerido,dia_venc_condominio,cidade,estado,cep,observacoes,data_cadastro,data_atualizacao
+1,"R. Exemplo, 101, Bloco A",1234567-00,Apartamento Padrão,Sim,1200.0,Mensal,1600.0,450.0,5,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+2,"R. do Império, 225, Apto 2",0020301-33,"Casa reformada, sem janelas, sem portas, mas bonita",Não,2250.0,Anual,2200.0,0.0,5,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-17 20:29:04
+3,"R. dos Bobos, 0",3343100348-11,"Casa engraçada, sem teto, sem nada",Não,400.0,Mensal,5000.0,0.0,1,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-17 20:29:04
+4,"AV. Aguias do Sul, 899",0021294901-22,Sala Comercial com vidros bonitoos,Sim,100.0,Mensal,2300.0,441.0,5,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+5,"Av. Reboucas, 9911",2412455532-2,"Cabana sem Chaminé, velha, firme como palanque na areia",Sim,2000.0,Anual,2230.0,211.0,4,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+6,"Rua dos Alfeneiros, 4",9988776-55,"Armário sob a escada, com ventilação mínima",Sim,150.0,Mensal,800.0,50.0,10,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+7,"Av. Brasil, 5000",1122334-99,Mansão com piscina de plástico e churrasqueira,Sim,4500.0,Anual,12000.0,1200.0,15,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+8,"Travessa do Tranco, 12",5544332-11,Sobrado que range quando venta,Sim,900.0,Mensal,1800.0,300.0,5,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+9,"Al. das Flores, s/n",7766554-00,Jardim com rede e Wi-Fi do vizinho,Não,50.0,Anual,450.0,0.0,1,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-17 20:29:04
+10,"R. da Amargura, 13",1020304-55,Loft conceito aberto (não tem paredes internas),Sim,1100.0,Mensal,2500.0,600.0,10,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+11,"Av. Paulista, 1000",9080706-12,Conjunto comercial com vista para o trânsito,Não,3200.0,Anual,5500.0,0.0,1,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-17 20:29:04
+12,"R. do Sossego, 42",4455667-88,Casa de campo com fantasmas amigáveis,Sim,600.0,Mensal,1200.0,150.0,20,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+13,"Beco do Batman, 99",1212343-44,Estúdio artístico com cheiro de tinta fresca,Sim,850.0,Mensal,3100.0,450.0,10,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+14,"R. da Esperança, 7",8899001-22,Kitnet que vira balada se ligar o rádio,Não,300.0,Mensal,950.0,100.0,5,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-17 20:29:04
+15,"Rodovia do Sol, km 12",5656787-99,Posto de gasolina desativado com muito potencial,Sim,5000.0,Anual,8000.0,0.0,1,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+16,"R. das Oliveiras, 21",3322114-00,Casa de vó com cheiro de bolo e filtro de barro,Não,1200.0,Anual,1600.0,0.0,1,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-17 20:29:04
+17,"Av. Atlântica, 101",0099887-33,Cobertura com vista para o mar (se usar binóculo),Não,7500.0,Anual,15000.0,0.0,0,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-17 20:29:04
+18,"R. do Comércio, 55",6677889-11,Loja com porta de aço que emperra na segunda,Não,2100.0,Mensal,4200.0,400.0,5,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-17 20:29:04
+19,"Travessa da Paz, 3",4433221-88,Quarto e cozinha (tão perto que cozinha da cama),Sim,400.0,Mensal,750.0,80.0,10,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+20,"R. Sete de Setembro, 1",1112223-44,Prédio histórico que pertenceu a um Barão,Sim,10000.0,Anual,25000.0,5000.0,1,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+21,"Av. das Nações, 202",9900112-55,Sala VIP com ar condicionado que faz barulho,Sim,0.0,Mensal,3300.0,900.0,15,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+22,"R. do Porto, 88",7788990-22,Galpão industrial para guardar sonhos ou caixas,Sim,4800.0,Anual,9000.0,1100.0,5,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+23,"Al. dos Anjos, 12",2233445-66,Chalé suíço no calor do Nordeste,Sim,950.0,Mensal,2200.0,300.0,10,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+24,"R. da Passagem, 0",5566443-11,Contêiner estilizado para nômades digitais,Sim,200.0,Mensal,1400.0,150.0,5,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-20 14:12:26
+25,"Estrada da Posse, 100",0011002-99,Sítio com horta e Wi-Fi rural via satélite,Não,1800.0,Anual,3500.0,0.0,20,Campo Grande,MS,,,2026-01-17 20:29:04,2026-01-17 20:29:04
+26,"Rua Coronel Belizário Lima, 1243",44502001,Casa,Não,1500.0,Anual,4020.0,0.0,,Arapongas,PR,,,2026-01-17 20:47:40,2026-01-17 20:47:40
+27,"Alameda das Flores do Campo, 443",652011-4,Apartamento,Não,2000.0,Anual,4400.0,330.0,5,Porto Belo,SC,,,2026-01-17 20:48:55,2026-01-17 20:48:55

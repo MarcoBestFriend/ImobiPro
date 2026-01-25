@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Despesas - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>💸 Despesas</h2>
+            <p>Gerenciamento de despesas dos imóveis</p>
+        </div>
+        <div style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
+            <a href="{{ url_for('nova_despesa') }}" class="btn btn-primary">
+                <span>➕</span> Nova Despesa
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Botões de Geração Automática -->
+<div class="card" style="margin-bottom: var(--spacing-md);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-md);">
+        <div>
+            <h4 style="margin: 0; color: var(--text-primary);">⚙️ Lançamentos Automáticos</h4>
+            <small style="color: var(--text-muted);">Gere despesas recorrentes de IPTU e Condomínio</small>
+        </div>
+        <div style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
+            <button type="button" class="btn btn-warning" onclick="document.getElementById('modal-iptu').style.display='flex'">
+                🏛️ Gerar IPTU Anual
+            </button>
+            <form method="POST" action="{{ url_for('gerar_condominio_mensal') }}" style="display: inline;">
+                <button type="submit" class="btn btn-info"
+                        onclick="return confirm('Isso irá gerar despesas de Condomínio para todos os imóveis com valor cadastrado.\n\nReferência: Mês corrente.\n\nDeseja continuar?')">
+                    🏢 Gerar Condomínio Mensal
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal IPTU -->
+<div id="modal-iptu" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="card" style="max-width: 400px; width: 90%; margin: 0;">
+        <div class="card-header">
+            <h3 class="card-title">🏛️ Gerar IPTU Anual</h3>
+        </div>
+        <form method="POST" action="{{ url_for('gerar_iptu_anual') }}">
+            <div style="padding: var(--spacing-md);">
+                <p style="color: var(--text-secondary); margin-bottom: var(--spacing-md);">
+                    Informe a data de vencimento do IPTU para todos os imóveis com valor cadastrado.
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Data de Vencimento *</label>
+                    <input type="date" name="data_vencimento" class="form-control" required
+                           value="{{ hoje }}">
+                </div>
+            </div>
+            <div style="padding: var(--spacing-md); border-top: 1px solid var(--border-color); display: flex; gap: var(--spacing-sm); justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-iptu').style.display='none'">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-warning">
+                    Gerar IPTU
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card">
+    <form method="get" action="{{ url_for('listar_despesas') }}">
+        <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: var(--spacing-md); align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Tipo de Despesa</label>
+                <select name="tipo" class="form-control">
+                    <option value="">Todos</option>
+                    {% for t in config.TIPOS_DESPESA %}
+                    <option value="{{ t }}" {% if tipo == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="pendente" {% if status == 'pendente' %}selected{% endif %}>Pendentes</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: var(--spacing-xs);">
+                <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+                <a href="{{ url_for('listar_despesas') }}" class="btn btn-secondary">🔄 Limpar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Estatísticas rápidas -->
+<div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+    <div class="stat-card">
+        <div class="stat-label">Total de Despesas</div>
+        <div class="stat-value" style="font-size: 2rem;">{{ despesas|length }}</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Pagas</div>
+        <div class="stat-value" style="font-size: 2rem; color: var(--success);">
+            {{ despesas|rejectattr('data_pagamento', 'none')|list|length }}
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Pendentes</div>
+        <div class="stat-value" style="font-size: 2rem; color: var(--warning);">
+            {{ despesas|selectattr('data_pagamento', 'none')|list|length }}
+        </div>
+    </div>
+</div>
+
+<!-- Lista de despesas -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Lista de Despesas</h3>
+        <span class="badge badge-info">{{ despesas|length }} despesas</span>
+    </div>
+
+    {% if despesas %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Imóvel</th>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                        <th>Valor</th>
+                        <th>Vencimento</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for despesa in despesas %}
+                    <tr>
+                        <td style="color: var(--text-muted); font-family: monospace;">#{{ despesa.id }}</td>
+                        <td style="color: var(--text-primary); font-weight: 500;">
+                            {{ (despesa.imovel_endereco or despesa.get('imovel', ''))[:35] }}...
+                        </td>
+                        <td><span class="badge badge-secondary">{{ despesa.tipo_despesa }}</span></td>
+                        <td style="color: var(--text-secondary);">{{ despesa.motivo_despesa or '-' }}</td>
+                        <td style="color: var(--danger); font-weight: 600;">
+                            {{ despesa.valor_previsto|formatar_moeda }}
+                            {% if despesa.valor_pago %}
+                            <div style="font-size: 0.75rem; color: var(--success);">
+                                Pago: {{ despesa.valor_pago|formatar_moeda }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--text-secondary);">{{ despesa.vencimento_previsto|formatar_data if despesa.vencimento_previsto else '-' }}</td>
+                        <td>
+                            {% if despesa.data_pagamento %}
+                                <span class="badge badge-success">Pago</span>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                    {{ despesa.data_pagamento|formatar_data }}
+                                </div>
+                            {% else %}
+                                <span class="badge badge-warning">Pendente</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap;">
+                                {% if not despesa.data_pagamento %}
+                                <form method="POST" action="{{ url_for('pagar_despesa', id=despesa.id) }}" style="display: inline;">
+                                    <button type="submit" class="btn btn-success" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;"
+                                            onclick="return confirm('Confirma o pagamento desta despesa?')">
+                                        ✓ Pagar
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <a href="{{ url_for('editar_despesa', id=despesa.id) }}" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                                    ✏️ Editar
+                                </a>
+                                <form method="POST" action="{{ url_for('excluir_despesa', id=despesa.id) }}" style="display: inline;">
+                                    <button type="submit" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;"
+                                            onclick="return confirm('Tem certeza que deseja excluir esta despesa?')">
+                                        🗑️
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-muted);">
+            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">💸</div>
+            <h3 style="color: var(--text-secondary); margin-bottom: var(--spacing-sm);">
+                Nenhuma despesa encontrada
+            </h3>
+            <p style="margin-bottom: var(--spacing-md);">
+                {% if tipo or status %}
+                    Nenhuma despesa com os filtros selecionados.
+                {% else %}
+                    Comece cadastrando despesas dos seus imóveis!
+                {% endif %}
+            </p>
+            <a href="{{ url_for('nova_despesa') }}" class="btn btn-primary">
+                ➕ Cadastrar Primeira Despesa
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

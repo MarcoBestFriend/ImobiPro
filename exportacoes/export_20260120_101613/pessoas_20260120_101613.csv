@@ -1,0 +1,28 @@
+id,situacao,nome_completo,cpf_cnpj,telefone,email,endereco_completo,cidade,patrimonio,estado_civil,nome_conjuge,cpf_conjuge,observacoes,data_cadastro,data_atualizacao
+1,Inquilino,Maria da Silva,123.456.789-00,(67) 99999-0000,maria@email.com,"R. Principal, 500",Campo Grande,500000.0,Casado,Ana Antunes,555.666.777-88,,2026-01-17 20:30:08,2026-01-17 20:30:08
+2,Inquilino,João Santos,987.654.321-00,(67) 88888-0000,joao@email.com,R. dos boboas n.0,São Cipriano - SC,2000000.0,Casado,Cláudia Fofoca,987.443.771.34,,2026-01-17 20:30:08,2026-01-17 20:30:08
+3,Fiador,Miriam Maria Coelho,992.443.331-20,(88)5546-1122,moedapoucaebobagem@uol.com.br,"Av. da Praia, 14",Goiânia - GO,400000.0,solteiro,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+4,Fiador,Moises o Cara,992.888.777-00,(55)4321-1123,doaltodamontanha@email.com,R. dos Industriais,Bento Gonçalves - RS,10000000.0,Casado,Ana Lúcia o Cara,445.240.201-17,,2026-01-17 20:30:08,2026-01-17 20:30:08
+5,Inquilino,Carlos do Chapéu,111.222.333-44,(11) 91234-5678,ocaradochapeu@email.com,"Rua das Flores, 10",São Paulo - SP,150000.0,Solteiro,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+6,Fiador,Regina da Economia,555.444.333-22,(21) 98888-7777,maoaberta@uol.com.br,"Av. Central, 1000",Rio de Janeiro - RJ,5000000.0,Casado,Roberto Gastão,666.777.888-99,,2026-01-17 20:30:08,2026-01-17 20:30:08
+7,Inquilino,Zé da Padaria,999.888.777-66,(31) 97777-6666,paozinhoquente@email.com,"R. do Trigo, 50",Belo Horizonte - MG,85000.0,Solteiro,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+8,Fiador,Magnólia das Flores,444.555.666-77,(41) 3344-5566,jardimvivido@email.com,"Al. das Rosas, 21",Curitiba - PR,1200000.0,Casado,Tulipa Silvestre,111.000.111-22,,2026-01-17 20:30:08,2026-01-17 20:30:08
+9,Inquilino,Pedro Pedregulho,222.333.444-55,(85) 96666-5555,pedranasapato@email.com,"R. da Pedreira, 99",Fortaleza - CE,45000.0,Solteiro,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+10,Fiador,Úrsula a Única,777.888.999-00,(51) 3020-1010,soexisteuma@email.com,"Av. Independência, 5",Porto Alegre - RS,8500000.0,Divorciado,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+11,Inquilino,Tiago sem Pressa,333.444.555-66,(62) 95555-4444,devagarsevailonge@uol.com.br,"Travessa da Paz, 7",Goiânia - GO,30000.0,Solteiro,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+12,Inquilino,Barão de Itararé,000.111.222-33,(19) 3232-4040,ochefechegou@email.com,"R. do Castelo, s/n",Campinas - SP,12000000.0,Casado,Baronesa de Itararé,999.777.555-33,None,2026-01-17 20:30:08,2026-01-20 13:54:02
+13,Inquilino,Marina Maré,666.555.444-33,(27) 94444-3333,ondasdomar@email.com,"R. da Orla, 101",Vitória - ES,200000.0,Solteiro,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+14,Fiador,Nestor Negócios,888.999.000-11,(11) 4545-6767,fechandoaconta@email.com,"Av. Faria Lima, 5000",São Paulo - SP,25000000.0,Casado,Nádia Negócios,444.333.222-11,,2026-01-17 20:30:08,2026-01-17 20:30:08
+15,Inquilino,Juca da Viola,121.212.121-21,(67) 92222-1111,cordasdesol@email.com,"R. do Seresteiro, 12",Bonito - MS,12000.0,Solteiro,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+16,Fiador,Felícia da Sorte,343.434.343-43,(48) 3333-2222,trevodequatro@uol.com.br,"R. da Fortuna, 777",Florianópolis - SC,3200000.0,Casado,Sortudo Silva,777.888.777-88,,2026-01-17 20:30:08,2026-01-17 20:30:08
+17,Inquilino,Beto da Bicicleta,565.656.565-65,(81) 91111-0000,pedalando@email.com,"Av. Beira Mar, 40",Recife - PE,5000.0,Solteiro,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+18,Fiador,Gilda da Granja,787.878.787-87,(16) 3636-1212,ovofresco@email.com,"Rodovia do Café, km 5",Ribeirão Preto - SP,1800000.0,Casado,Galo da Granja,111.222.111-22,,2026-01-17 20:30:08,2026-01-17 20:30:08
+19,Inquilino,Sônia do Sono,909.090.909-09,(92) 99887-7665,dorminhoca@email.com,"R. da Rede, 88",Manaus - AM,60000.0,Solteiro,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+20,Fiador,Horácio do Horário,010.101.010-10,(61) 3333-4444,pontualidade@email.com,Setor Bancário Sul,Brasília - DF,4500000.0,Casado,Heloísa das Horas,333.444.333-44,,2026-01-17 20:30:08,2026-01-17 20:30:08
+21,Inquilino,Duda da Dúvida,232.323.232-23,(71) 98765-4321,seraquevou@uol.com.br,"R. Incerta, 0",Salvador - BA,90000.0,Solteiro,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+22,Fiador,Arnaldo do Arquivo,454.545.454-45,(11) 2211-3344,tudoanotado@email.com,"R. das Pastas, 123",Santo André - SP,2100000.0,Casado,Adriana do Arquivo,555.666.555-66,,2026-01-17 20:30:08,2026-01-17 20:30:08
+23,Fiador,Caio no Poço,676.767.676-76,(84) 95544-3322,profundezas@email.com,"Travessa Baixa, 1",Natal - RN,15000.0,Solteiro,None,None,None,2026-01-17 20:30:08,2026-01-20 13:54:18
+24,Fiador,Vera da Verdade,898.989.898-89,(65) 3030-4040,doaquemdoer@email.com,"Av. Sincera, 55",Cuiabá - MT,6700000.0,Divorciado,,,,2026-01-17 20:30:08,2026-01-17 20:30:08
+25,Inquilino,Tião Carreiro,73422140116,8898123-3322,tiao@gmail.com,,,,Divorciado,,,,2026-01-17 20:50:14,2026-01-17 20:50:14
+26,Inquilino,Pedro Peido,422.422.423-23,1233212322,pedropeido@fourshare.com,"433, Delaware Av., New Castle","Biscaine, USA",10000000.0,Divorciado,,,,2026-01-17 21:40:46,2026-01-17 21:40:46
+27,Inquilino,Mandrágora Agora,021321451-21,663321-2121,agora@email.com,"Beco do Batman, 221",Chicago,,Casado,Ministro dos Transportes,665355254-34,,2026-01-20 13:56:07,2026-01-20 13:56:07

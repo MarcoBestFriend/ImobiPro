@@ -1,0 +1,18 @@
+~/ImobiPro/
+├── venv/                          # Ambiente virtual Python
+├── database/
+│   ├── schema.sql                 # ✅ Schema corrigido
+│   ├── db_manager.py              # ✅ Gerenciador corrigido
+│   └── imobipro.db               # ✅ Banco com dados migrados
+├── utils/
+│   └── backup.py                  # ✅ Sistema de backup
+├── migrar_planilha.py            # ✅ Migração corrigida
+├── analisar_planilha_detalhado.py # ✅ Análise da planilha
+├── analise_planilha.json         # 📊 Análise detalhada
+├── instalar_imobipro.sh          # ✅ Instalador
+├── iniciar.sh                    # ✅ Script de inicialização
+├── README.md                     # 📚 Documentação
+├── requirements.txt              # 📦 Dependências
+└── ImobiPro.xlsx                 # 📊 Planilha original
+
+

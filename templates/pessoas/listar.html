@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Pessoas - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>👥 Pessoas</h2>
+            <p>Gerenciamento de inquilinos e fiadores</p>
+        </div>
+        <a href="{{ url_for('nova_pessoa') }}" class="btn btn-primary">
+            <span>➕</span> Nova Pessoa
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card">
+    <form method="get" action="{{ url_for('listar_pessoas') }}">
+        <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: var(--spacing-md); align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Buscar por nome</label>
+                <input type="text" name="busca" class="form-control" placeholder="Digite o nome..." value="{{ busca }}">
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Situação</label>
+                <select name="situacao" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="Inquilino" {% if situacao == 'Inquilino' %}selected{% endif %}>Inquilinos</option>
+                    <option value="Fiador" {% if situacao == 'Fiador' %}selected{% endif %}>Fiadores</option>
+                    <option value="Ambos" {% if situacao == 'Ambos' %}selected{% endif %}>Ambos</option>
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: var(--spacing-xs);">
+                <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+                <a href="{{ url_for('listar_pessoas') }}" class="btn btn-secondary">🔄 Limpar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Lista de pessoas -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Lista de Pessoas</h3>
+        <span class="badge badge-info">{{ pessoas|length }} pessoas</span>
+    </div>
+    
+    {% if pessoas %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>CPF/CNPJ</th>
+                        <th>Situação</th>
+                        <th>Telefone</th>
+                        <th>Email</th>
+                        <th>Cidade</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pessoa in pessoas %}
+                    <tr>
+                        <td style="color: var(--text-muted); font-family: monospace;">
+                            #{{ pessoa.id }}
+                        </td>
+                        <td style="color: var(--text-primary); font-weight: 500;">
+                            {{ pessoa.nome_completo }}
+                        </td>
+                        <td style="font-family: monospace; color: var(--text-secondary);">
+                            {{ pessoa.cpf_cnpj or '-' }}
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ 'info' if pessoa.situacao == 'Inquilino' else 'warning' }}">
+                                {{ pessoa.situacao }}
+                            </span>
+                        </td>
+                        <td style="color: var(--text-secondary);">
+                            {{ pessoa.telefone or '-' }}
+                        </td>
+                        <td style="color: var(--text-secondary); font-size: 0.875rem;">
+                            {{ pessoa.email or '-' }}
+                        </td>
+                        <td style="color: var(--text-secondary);">
+                            {{ pessoa.cidade or '-' }}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="{{ url_for('editar_pessoa', id=pessoa.id) }}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                    ✏️ Editar
+                                </a>
+                                <form action="{{ url_for('excluir_pessoa', id=pessoa.id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Tem certeza que deseja excluir esta pessoa?\n\nEsta ação não pode ser desfeita.');">
+                                    <button type="submit" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.875rem;">🗑️</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-muted);">
+            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">👥</div>
+            <h3 style="color: var(--text-secondary); margin-bottom: var(--spacing-sm);">
+                Nenhuma pessoa encontrada
+            </h3>
+            <p style="margin-bottom: var(--spacing-md);">
+                {% if busca or situacao %}
+                    Nenhum resultado para os filtros aplicados.
+                {% else %}
+                    Comece cadastrando inquilinos e fiadores!
+                {% endif %}
+            </p>
+            <a href="{{ url_for('nova_pessoa') }}" class="btn btn-primary">
+                ➕ Cadastrar Primeira Pessoa
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

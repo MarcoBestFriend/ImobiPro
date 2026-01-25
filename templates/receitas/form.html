@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if receita else 'Nova' }} Receita - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>{{ '✏️ Editar' if receita else '➕ Nova' }} Receita</h2>
+    <p>{{ 'Atualize as informações' if receita else 'Lance uma nova' }} receita de aluguel</p>
+</div>
+
+<div class="card">
+    <form method="POST">
+        <!-- Contrato -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                📋 Contrato
+            </h3>
+
+            <div class="form-group">
+                <label class="form-label">Selecione o Contrato *</label>
+                <select name="id_contrato" id="id_contrato" class="form-control" required onchange="preencherValores(this)">
+                    <option value="">-- Selecione um contrato --</option>
+                    {% for contrato in contratos %}
+                    <option value="{{ contrato.id }}"
+                            data-aluguel="{{ contrato.valor_aluguel }}"
+                            data-dia-venc="{{ contrato.dia_vencimento }}"
+                            {% if receita and receita.id_contrato == contrato.id %}selected{% endif %}>
+                        {{ contrato.imovel_endereco[:40] }}... - {{ contrato.inquilino_nome }} ({{ contrato.valor_aluguel|formatar_moeda }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <small style="color: var(--text-muted); font-size: 0.875rem;">
+                    Apenas contratos ativos são exibidos
+                </small>
+            </div>
+        </div>
+
+        <!-- Referência e Vencimento -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                📅 Período
+            </h3>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Mês de Referência *</label>
+                    <input type="date" name="mes_referencia" class="form-control"
+                           value="{{ receita.mes_referencia if receita else '' }}" required>
+                    <small style="color: var(--text-muted); font-size: 0.875rem;">
+                        Mês/ano de competência do aluguel
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Data de Vencimento *</label>
+                    <input type="date" name="vencimento_previsto" id="vencimento_previsto" class="form-control"
+                           value="{{ receita.vencimento_previsto if receita else '' }}" required>
+                </div>
+            </div>
+        </div>
+
+        <!-- Valores Devidos -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                💰 Valores Devidos
+            </h3>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Aluguel *</label>
+                    <input type="number" step="0.01" min="0" name="aluguel_devido" id="aluguel_devido" class="form-control"
+                           placeholder="0.00"
+                           value="{{ receita.aluguel_devido if receita else '' }}" required
+                           onchange="calcularTotal()">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Condomínio</label>
+                    <input type="number" step="0.01" min="0" name="condominio_devido" id="condominio_devido" class="form-control"
+                           placeholder="0.00"
+                           value="{{ receita.condominio_devido if receita and receita.condominio_devido else '' }}"
+                           onchange="calcularTotal()">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">IPTU</label>
+                    <input type="number" step="0.01" min="0" name="iptu_devido" id="iptu_devido" class="form-control"
+                           placeholder="0.00"
+                           value="{{ receita.iptu_devido if receita and receita.iptu_devido else '' }}"
+                           onchange="calcularTotal()">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Desconto (-) / Multa (+)</label>
+                    <input type="number" step="0.01" name="desconto_multa" id="desconto_multa" class="form-control"
+                           placeholder="0.00"
+                           value="{{ receita.desconto_multa if receita and receita.desconto_multa else '' }}"
+                           onchange="calcularTotal()">
+                    <small style="color: var(--text-muted); font-size: 0.875rem;">
+                        Valor negativo = desconto, positivo = multa/juros
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Valor Total Devido</label>
+                    <input type="number" step="0.01" min="0" name="valor_total_devido" id="valor_total_devido" class="form-control"
+                           placeholder="0.00"
+                           value="{{ receita.valor_total_devido if receita else '' }}" readonly
+                           style="background-color: var(--bg-tertiary); font-weight: bold; color: var(--success);">
+                </div>
+            </div>
+        </div>
+
+        <!-- Recebimento -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                ✅ Recebimento
+            </h3>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Data de Recebimento</label>
+                    <input type="date" name="data_recebimento" class="form-control"
+                           value="{{ receita.data_recebimento if receita and receita.data_recebimento else '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Valor Recebido</label>
+                    <input type="number" step="0.01" min="0" name="valor_recebido" class="form-control"
+                           placeholder="0.00"
+                           value="{{ receita.valor_recebido if receita and receita.valor_recebido else '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Status *</label>
+                    <select name="status" class="form-control" required>
+                        {% for st in config.STATUS_PAGAMENTO %}
+                        <option value="{{ st }}" {% if receita and receita.status == st %}selected{% elif not receita and st == 'Pendente' %}selected{% endif %}>
+                            {{ st }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Observações -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                📝 Observações
+            </h3>
+
+            <div class="form-group">
+                <label class="form-label">Observações</label>
+                <textarea name="observacoes" class="form-control" rows="3"
+                          placeholder="Informações adicionais...">{{ receita.observacoes if receita else '' }}</textarea>
+            </div>
+        </div>
+
+        <!-- Botões -->
+        <div style="display: flex; gap: var(--spacing-md); justify-content: flex-end; padding-top: var(--spacing-md); border-top: 1px solid var(--border);">
+            <a href="{{ url_for('listar_receitas') }}" class="btn btn-secondary">
+                ← Cancelar
+            </a>
+            <button type="submit" class="btn btn-success">
+                ✓ {{ 'Atualizar' if receita else 'Cadastrar' }} Receita
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Preencher valores automaticamente ao selecionar contrato
+function preencherValores(select) {
+    const option = select.options[select.selectedIndex];
+    if (option.value) {
+        document.getElementById('aluguel_devido').value = option.dataset.aluguel || '';
+        calcularTotal();
+    }
+}
+
+// Calcular valor total devido
+function calcularTotal() {
+    const aluguel = parseFloat(document.getElementById('aluguel_devido').value) || 0;
+    const condominio = parseFloat(document.getElementById('condominio_devido').value) || 0;
+    const iptu = parseFloat(document.getElementById('iptu_devido').value) || 0;
+    const descontoMulta = parseFloat(document.getElementById('desconto_multa').value) || 0;
+
+    const total = aluguel + condominio + iptu + descontoMulta;
+    document.getElementById('valor_total_devido').value = total.toFixed(2);
+}
+
+// Calcular total ao carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    calcularTotal();
+});
+</script>
+
+{% endblock %}
