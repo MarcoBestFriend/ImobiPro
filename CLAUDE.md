@@ -3,7 +3,7 @@
 ## 📋 Informações Rápidas do Projeto
 
 - **Nome**: ImobiPro
-- **Versão**: 1.1.0 (CRUD completo + lançamentos automáticos)
+- **Versão**: 1.2.0 (CRUD completo + lançamentos automáticos + dados reais)
 - **Objetivo**: Sistema completo para gestão de imóveis, contratos, despesas e receitas de aluguéis
 - **Stack**: Python 3.10+, Flask, SQLite, Jinja2
 - **Ambiente**: Ubuntu 24.04, VSCode
@@ -84,14 +84,15 @@ ImobiPro/
 | id | INTEGER | Chave primária (auto) | Sim |
 | endereco_completo | TEXT | Endereço completo | Sim |
 | inscricao_imobiliaria | TEXT | Inscrição municipal | Não |
+| matricula | TEXT | Matrícula do imóvel no cartório | Não |
 | tipo_imovel | TEXT | Descrição do imóvel (aposentos, conservação) | Sim |
 | id_proprietario | INTEGER | FK → pessoas.id | Não |
 | ocupado | TEXT | "Sim" ou "Não" (auto) | Sim |
 | valor_iptu_anual | REAL | Valor anual IPTU | Não |
 | forma_pagamento_iptu | TEXT | "Anual" ou "Mensal" | Sim |
-| aluguel_pretendido | REAL | Valor sugerido | Não |
-| condominio_sugerido | REAL | Valor condomínio | Não |
-| dia_venc_condominio | INTEGER | Dia 1-31 | Não |
+| aluguel_pretendido | REAL | Valor sugerido para locação | Não |
+| condominio_sugerido | REAL | Valor do condomínio | Não |
+| dia_venc_condominio | INTEGER | Dia vencimento condomínio (1-31) | Não |
 | valor_mercado | REAL | Valor de mercado do imóvel | Não |
 | data_aquisicao | DATE | Data de aquisição | Não |
 | numero_hidrometro | TEXT | Número do hidrômetro | Não |
@@ -99,7 +100,7 @@ ImobiPro/
 | cidade | TEXT | Cidade (padrão: "Campo Grande") | Não |
 | estado | TEXT | UF (padrão: "MS") | Não |
 | cep | TEXT | CEP | Não |
-| observacoes | TEXT | Observações | Não |
+| observacoes | TEXT | Observações gerais | Não |
 | data_cadastro | TIMESTAMP | Data criação (auto) | Sim |
 | data_atualizacao | TIMESTAMP | Última atualização (auto) | Sim |
 
@@ -281,6 +282,7 @@ POST /imoveis/novo              → Processar
 GET  /imoveis/<id>              → Detalhes
 GET  /imoveis/<id>/editar       → Form editar
 POST /imoveis/<id>/editar       → Processar
+POST /imoveis/<id>/excluir      → Excluir (com confirmação)
 ```
 
 ### Pessoas
@@ -290,6 +292,7 @@ GET  /pessoas/novo              → Form cadastro
 POST /pessoas/novo              → Processar
 GET  /pessoas/<id>/editar       → Form editar
 POST /pessoas/<id>/editar       → Processar
+POST /pessoas/<id>/excluir      → Excluir (com confirmação)
 ```
 
 ### Contratos
@@ -299,6 +302,7 @@ GET  /contratos/novo            → Form cadastro
 POST /contratos/novo            → Processar
 GET  /contratos/<id>/editar     → Form editar
 POST /contratos/<id>/editar     → Processar
+POST /contratos/<id>/excluir    → Excluir (com confirmação)
 ```
 
 ### Despesas
@@ -323,6 +327,13 @@ GET  /receitas/<id>/editar          → Form editar
 POST /receitas/<id>/editar          → Processar
 POST /receitas/<id>/excluir         → Excluir
 POST /receitas/<id>/receber         → Marcar como recebida (atalho)
+```
+
+### Dados (Importar/Exportar)
+```
+GET  /dados                         → Página de backup/restore
+GET  /dados/exportar                → Download ZIP com CSVs de todas as tabelas
+POST /dados/importar                → Upload ZIP para restaurar dados
 ```
 
 ### Relatórios
@@ -364,23 +375,23 @@ GET  /relatorios                    → Página (parcial)
 
 ---
 
-## ✅ Estado Atual (19/01/2026)
+## ✅ Estado Atual (27/01/2026)
 
-### Dados Migrados
-- 25 imóveis
-- 13 disponíveis
-- 12 ocupados
-- 12 contratos ativos
+### Dados Reais Importados
+- 29 imóveis (dados reais do arquivo imoveis2026.xlsx)
+- 0 pessoas (aguardando importação)
+- 0 contratos (aguardando importação)
 
 ### Implementado
 - ✅ Dashboard
-- ✅ CRUD imóveis (listar, novo, editar)
-- ✅ CRUD pessoas (listar, novo, editar)
-- ✅ CRUD contratos (listar, novo, editar) - atualiza status do imóvel automaticamente
+- ✅ CRUD imóveis (listar, novo, editar, excluir, visualizar)
+- ✅ CRUD pessoas (listar, novo, editar, excluir)
+- ✅ CRUD contratos (listar, novo, editar, excluir) - atualiza status do imóvel automaticamente
 - ✅ CRUD despesas (listar, novo, editar, excluir, pagar)
 - ✅ CRUD receitas (listar, novo, editar, excluir, receber)
-- ✅ **Lançamento automático IPTU anual** (vencimento 10/janeiro)
+- ✅ **Lançamento automático IPTU anual** (data de vencimento customizada via modal)
 - ✅ **Lançamento automático Condomínio mensal** (vencimento conforme cadastro)
+- ✅ Importação/Exportação de dados (ZIP com CSVs)
 - ✅ Migração Excel
 - ✅ Backup
 
@@ -397,8 +408,9 @@ GET  /relatorios                    → Página (parcial)
 
 ### Gerar IPTU Anual
 - **Rota**: `POST /despesas/gerar-iptu-anual`
+- **Parâmetro**: `data_vencimento` (informada via modal antes de gerar)
 - **O que faz**: Cria despesas de IPTU para todos os imóveis com `valor_iptu_anual > 0`
-- **Vencimento**: 10 de janeiro do ano corrente
+- **Vencimento**: Data informada pelo usuário no modal
 - **Proteção**: Não cria duplicatas (verifica se já existe IPTU para o ano)
 - **Tipo despesa**: "IPTU"
 - **Descrição**: "IPTU Anual {ano}"

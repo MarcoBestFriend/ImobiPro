@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Despesas Pendentes - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>Despesas Pendentes</h2>
+            <p>Despesas nao pagas ordenadas por vencimento</p>
+        </div>
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('listar_relatorios') }}" class="btn btn-secondary">Voltar</a>
+            <a href="{{ url_for('relatorio_despesas_pendentes_excel') }}{% if request.args %}?{{ request.query_string.decode() }}{% endif %}" class="btn btn-success">
+                Exportar Excel
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card">
+    <form method="get" action="{{ url_for('relatorio_despesas_pendentes') }}">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: var(--spacing-md); align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Tipo de Despesa</label>
+                <select name="tipo" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="IPTU" {% if filtro_tipo == 'IPTU' %}selected{% endif %}>IPTU</option>
+                    <option value="Condominio" {% if filtro_tipo == 'Condominio' %}selected{% endif %}>Condominio</option>
+                    <option value="Manutencao" {% if filtro_tipo == 'Manutencao' %}selected{% endif %}>Manutencao</option>
+                    <option value="Reforma" {% if filtro_tipo == 'Reforma' %}selected{% endif %}>Reforma</option>
+                    <option value="Outros" {% if filtro_tipo == 'Outros' %}selected{% endif %}>Outros</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Vencimento ate</label>
+                <input type="date" name="vencimento_ate" class="form-control" value="{{ filtro_vencimento }}">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Situacao</label>
+                <select name="situacao" class="form-control">
+                    <option value="todas" {% if filtro_situacao == 'todas' %}selected{% endif %}>Todas</option>
+                    <option value="vencidas" {% if filtro_situacao == 'vencidas' %}selected{% endif %}>Apenas Vencidas</option>
+                    <option value="a_vencer" {% if filtro_situacao == 'a_vencer' %}selected{% endif %}>A Vencer</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: var(--spacing-xs);">
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <a href="{{ url_for('relatorio_despesas_pendentes') }}" class="btn btn-secondary">Limpar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Estatisticas -->
+<div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+    <div class="stat-card">
+        <div class="stat-label">Total de Despesas</div>
+        <div class="stat-value">{{ total_despesas }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Valor Total Pendente</div>
+        <div class="stat-value" style="font-size: 1.75rem; color: var(--danger);">{{ total_valor|formatar_moeda }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Vencidas</div>
+        <div class="stat-value" style="color: var(--danger);">{{ total_vencidas }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">A Vencer</div>
+        <div class="stat-value" style="color: var(--warning);">{{ total_a_vencer }}</div>
+    </div>
+</div>
+
+<!-- Tabela de Despesas -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Lista de Despesas Pendentes</h3>
+        <span class="badge badge-info">{{ despesas|length }} registros</span>
+    </div>
+
+    {% if despesas %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Imovel</th>
+                        <th>Tipo</th>
+                        <th>Descricao</th>
+                        <th>Vencimento</th>
+                        <th>Valor</th>
+                        <th>Situacao</th>
+                        <th>Acoes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for despesa in despesas %}
+                    <tr>
+                        <td style="font-family: monospace; color: var(--text-muted);">#{{ despesa.id }}</td>
+                        <td style="max-width: 200px;">
+                            <div style="color: var(--text-primary); font-weight: 500;">
+                                {{ despesa.imovel_endereco|truncate(30) if despesa.imovel_endereco else '-' }}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-{% if despesa.tipo_despesa == 'IPTU' %}info{% elif despesa.tipo_despesa == 'Condominio' %}warning{% else %}secondary{% endif %}">
+                                {{ despesa.tipo_despesa }}
+                            </span>
+                        </td>
+                        <td style="color: var(--text-secondary); max-width: 150px;">
+                            {{ despesa.motivo_despesa|truncate(25) if despesa.motivo_despesa else '-' }}
+                        </td>
+                        <td style="color: var(--text-secondary);">
+                            {{ despesa.vencimento_previsto|formatar_data }}
+                        </td>
+                        <td style="color: var(--danger); font-weight: 600;">
+                            {{ despesa.valor_previsto|formatar_moeda }}
+                        </td>
+                        <td>
+                            {% if despesa.vencida %}
+                                <span class="badge badge-danger">Vencida</span>
+                            {% else %}
+                                <span class="badge badge-warning">A Vencer</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <form action="{{ url_for('pagar_despesa', id=despesa.id) }}" method="POST" style="margin: 0;">
+                                    <button type="submit" class="btn btn-success" style="padding: 0.375rem 0.75rem; font-size: 0.8rem;">
+                                        Pagar
+                                    </button>
+                                </form>
+                                <a href="{{ url_for('editar_despesa', id=despesa.id) }}" class="btn btn-primary" style="padding: 0.375rem 0.75rem; font-size: 0.8rem;">
+                                    Editar
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-muted);">
+            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">&#128077;</div>
+            <h3 style="color: var(--text-secondary); margin-bottom: var(--spacing-sm);">
+                Nenhuma despesa pendente!
+            </h3>
+            <p>
+                {% if filtro_tipo or filtro_vencimento or filtro_situacao != 'todas' %}
+                    Nenhum resultado para os filtros aplicados.
+                {% else %}
+                    Todas as despesas estao pagas.
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

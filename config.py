@@ -57,6 +57,11 @@ class Config:
     # Fuso horário
     TIMEZONE = 'America/Campo_Grande'
 
+    # Configuração de login
+    # Para alterar a senha, modifique a variável abaixo
+    LOGIN_USERNAME = 'admin'
+    LOGIN_PASSWORD = 'imobipro2026'  # Altere esta senha!
+
 
 class DevelopmentConfig(Config):
     """Configurações para ambiente de desenvolvimento."""

@@ -6,8 +6,43 @@
 <div class="page-header">
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <h2>📦 Exportar e Importar Dados</h2>
-            <p>Backup e restauracao dos dados do sistema</p>
+            <h2>📦 Backup e Segurança de Dados</h2>
+            <p>Backup, exportação e importação dos dados do sistema</p>
+        </div>
+    </div>
+</div>
+
+<!-- Backup Rápido -->
+<div class="card" style="margin-bottom: var(--spacing-lg); border: 2px solid var(--success);">
+    <div class="card-header" style="background: var(--success); color: white;">
+        <h3 class="card-title" style="color: white;">💾 Backup Rápido do Banco de Dados</h3>
+    </div>
+    <div style="padding: var(--spacing-md);">
+        <p style="color: var(--text-secondary); margin-bottom: var(--spacing-md);">
+            Faça download de uma cópia completa do banco de dados SQLite.
+            Este é o backup mais seguro e rápido para restauração.
+        </p>
+        {% if ultimo_backup %}
+        <div style="background: var(--bg-tertiary); padding: var(--spacing-md); border-radius: var(--radius); margin-bottom: var(--spacing-md);">
+            <strong style="color: var(--text-primary);">Último backup:</strong>
+            <span style="color: var(--text-secondary);">{{ ultimo_backup }}</span>
+        </div>
+        {% endif %}
+        <div style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap; align-items: center;">
+            <a href="{{ url_for('backup_banco') }}" class="btn btn-success" style="font-size: 1.1rem; padding: 0.75rem 1.5rem;">
+                💾 Baixar Backup do Banco (.db)
+            </a>
+            <form method="POST" action="{{ url_for('executar_backup') }}" style="margin: 0;">
+                <button type="submit" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.75rem 1.5rem;">
+                    🔄 Criar Backup Agora
+                </button>
+            </form>
+        </div>
+        <div style="margin-top: var(--spacing-md); padding: var(--spacing-sm); background: var(--bg-tertiary); border-radius: var(--radius);">
+            <p style="color: var(--text-secondary); margin: 0; font-size: 0.9rem;">
+                🕐 <strong>Backup automático:</strong> Configurado para executar diariamente às 02:00.
+                Os últimos 7 backups são mantidos na pasta <code>backups/</code>.
+            </p>
         </div>
     </div>
 </div>

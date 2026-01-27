@@ -16,3 +16,6 @@ pillow>=10.0.0
 
 # Geração de PDFs
 reportlab>=4.0.0
+
+# Agendamento de tarefas
+apscheduler>=3.10.0

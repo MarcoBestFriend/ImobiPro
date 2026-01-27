@@ -9,6 +9,7 @@ Descrição: Aplicação Flask principal com todas as rotas e funcionalidades
 """
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from datetime import datetime, date
 import os
 import csv
@@ -18,6 +19,7 @@ import tempfile
 
 from config import get_config
 from database.db_manager import DatabaseManager
+from utils.backup import SistemaBackup
 
 # Criar aplicação Flask
 app = Flask(__name__)
@@ -25,6 +27,85 @@ app.config.from_object(get_config('development'))
 
 # Inicializar gerenciador de banco de dados
 db = DatabaseManager()
+
+# Inicializar sistema de backup
+backup_system = SistemaBackup(db)
+
+# ============================================================================
+# CONFIGURAÇÃO DE LOGIN
+# ============================================================================
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Por favor, faça login para acessar esta página.'
+login_manager.login_message_category = 'warning'
+
+
+class User(UserMixin):
+    """Classe simples de usuário para Flask-Login."""
+    def __init__(self, id):
+        self.id = id
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Carrega o usuário pelo ID."""
+    if user_id == 'admin':
+        return User('admin')
+    return None
+
+# ============================================================================
+# BACKUP AUTOMÁTICO
+# ============================================================================
+
+def executar_backup_automatico():
+    """Executa backup automático do banco de dados."""
+    try:
+        print(f"\n[BACKUP AUTOMÁTICO] Iniciando às {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+        sucesso, caminho = backup_system.backup_sqlite()
+        if sucesso:
+            print(f"[BACKUP AUTOMÁTICO] Concluído: {caminho}")
+            # Limpar backups antigos (manter últimos 7)
+            backup_system.limpar_backups_antigos(manter_ultimos=7)
+        else:
+            print(f"[BACKUP AUTOMÁTICO] Falha: {caminho}")
+    except Exception as e:
+        print(f"[BACKUP AUTOMÁTICO] Erro: {str(e)}")
+
+def obter_ultimo_backup():
+    """Retorna informações do último backup realizado."""
+    try:
+        backups = backup_system.listar_backups()
+        db_backups = [b for b in backups if b['tipo'] == 'SQLite']
+        if db_backups:
+            ultimo = db_backups[0]
+            return ultimo['data'].strftime('%d/%m/%Y às %H:%M')
+        return None
+    except:
+        return None
+
+# Configurar APScheduler para backup diário
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.triggers.cron import CronTrigger
+
+    scheduler = BackgroundScheduler()
+    # Executa backup todos os dias às 02:00
+    scheduler.add_job(
+        executar_backup_automatico,
+        CronTrigger(hour=2, minute=0),
+        id='backup_diario',
+        name='Backup automático diário',
+        replace_existing=True
+    )
+    scheduler.start()
+    print("✓ Backup automático configurado para 02:00 diariamente")
+except ImportError:
+    print("⚠ APScheduler não instalado. Backup automático desativado.")
+    print("  Para ativar, execute: pip install apscheduler")
+except Exception as e:
+    print(f"⚠ Erro ao configurar backup automático: {e}")
 
 
 # ============================================================================
@@ -73,6 +154,45 @@ def status_badge(status):
 
 
 # ============================================================================
+# ROTAS - AUTENTICAÇÃO
+# ============================================================================
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Página de login."""
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        username = request.form.get('username', '')
+        password = request.form.get('password', '')
+
+        # Verificar credenciais
+        if username == app.config.get('LOGIN_USERNAME', 'admin') and \
+           password == app.config.get('LOGIN_PASSWORD', 'imobipro2026'):
+            user = User(username)
+            login_user(user, remember=True)
+            flash('Login realizado com sucesso!', 'success')
+
+            # Redirecionar para a página original ou dashboard
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('dashboard'))
+        else:
+            flash('Usuário ou senha incorretos.', 'danger')
+
+    return render_template('login.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    """Realiza logout do usuário."""
+    logout_user()
+    flash('Você saiu do sistema.', 'info')
+    return redirect(url_for('login'))
+
+
+# ============================================================================
 # ROTAS - PÁGINA INICIAL E DASHBOARD
 # ============================================================================
 
@@ -83,6 +203,7 @@ def index():
 
 
 @app.route('/dashboard')
+@login_required
 def dashboard():
     """Dashboard principal com estatísticas e resumos."""
     # Buscar estatísticas
@@ -113,6 +234,7 @@ def dashboard():
 # ============================================================================
 
 @app.route('/imoveis')
+@login_required
 def listar_imoveis():
     """Lista todos os imóveis."""
     # Buscar parâmetros de filtro
@@ -131,6 +253,7 @@ def listar_imoveis():
 
 
 @app.route('/imoveis/novo', methods=['GET', 'POST'])
+@login_required
 def novo_imovel():
     """Cadastra novo imóvel."""
     if request.method == 'POST':
@@ -181,6 +304,7 @@ def novo_imovel():
 
 
 @app.route('/imoveis/<int:id>')
+@login_required
 def ver_imovel(id):
     """Visualiza detalhes de um imóvel."""
     imovel = db.get_by_id('imoveis', id)
@@ -199,6 +323,7 @@ def ver_imovel(id):
 
 
 @app.route('/imoveis/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
 def editar_imovel(id):
     """Edita um imóvel existente."""
     imovel = db.get_by_id('imoveis', id)
@@ -250,6 +375,7 @@ def editar_imovel(id):
 
 
 @app.route('/imoveis/<int:id>/excluir', methods=['POST'])
+@login_required
 def excluir_imovel(id):
     """Exclui um imóvel."""
     try:
@@ -268,6 +394,7 @@ def excluir_imovel(id):
 # ============================================================================
 
 @app.route('/pessoas')
+@login_required
 def listar_pessoas():
     """Lista todas as pessoas."""
     situacao = request.args.get('situacao', '')
@@ -284,6 +411,7 @@ def listar_pessoas():
 
 
 @app.route('/pessoas/novo', methods=['GET', 'POST'])
+@login_required
 def nova_pessoa():
     """Cadastra nova pessoa."""
     if request.method == 'POST':
@@ -322,6 +450,7 @@ def nova_pessoa():
 
 
 @app.route('/pessoas/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
 def editar_pessoa(id):
     """Edita uma pessoa existente."""
     pessoa = db.get_by_id('pessoas', id)
@@ -364,6 +493,7 @@ def editar_pessoa(id):
 
 
 @app.route('/pessoas/<int:id>/excluir', methods=['POST'])
+@login_required
 def excluir_pessoa(id):
     """Exclui uma pessoa."""
     try:
@@ -382,6 +512,7 @@ def excluir_pessoa(id):
 # ============================================================================
 
 @app.route('/contratos')
+@login_required
 def listar_contratos():
     """Lista todos os contratos."""
     status = request.args.get('status', '')
@@ -402,6 +533,7 @@ def listar_contratos():
 
 
 @app.route('/contratos/novo', methods=['GET', 'POST'])
+@login_required
 def novo_contrato():
     """Cadastra novo contrato."""
     if request.method == 'POST':
@@ -458,6 +590,7 @@ def novo_contrato():
 
 
 @app.route('/contratos/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
 def editar_contrato(id):
     """Edita um contrato existente."""
     contrato = db.get_by_id('contratos', id)
@@ -516,6 +649,7 @@ def editar_contrato(id):
 
 
 @app.route('/contratos/<int:id>/excluir', methods=['POST'])
+@login_required
 def excluir_contrato(id):
     """Exclui um contrato."""
     try:
@@ -534,6 +668,7 @@ def excluir_contrato(id):
 # ============================================================================
 
 @app.route('/despesas')
+@login_required
 def listar_despesas():
     """Lista todas as despesas."""
     tipo = request.args.get('tipo', '')
@@ -557,6 +692,7 @@ def listar_despesas():
 
 
 @app.route('/despesas/nova', methods=['GET', 'POST'])
+@login_required
 def nova_despesa():
     """Cadastra nova despesa."""
     if request.method == 'POST':
@@ -596,6 +732,7 @@ def nova_despesa():
 
 
 @app.route('/despesas/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
 def editar_despesa(id):
     """Edita uma despesa existente."""
     despesa = db.get_by_id('despesas', id)
@@ -634,6 +771,7 @@ def editar_despesa(id):
 
 
 @app.route('/despesas/<int:id>/excluir', methods=['POST'])
+@login_required
 def excluir_despesa(id):
     """Exclui uma despesa."""
     try:
@@ -648,6 +786,7 @@ def excluir_despesa(id):
 
 
 @app.route('/despesas/<int:id>/pagar', methods=['POST'])
+@login_required
 def pagar_despesa(id):
     """Marca uma despesa como paga."""
     try:
@@ -673,6 +812,7 @@ def pagar_despesa(id):
 
 
 @app.route('/despesas/gerar-iptu-anual', methods=['POST'])
+@login_required
 def gerar_iptu_anual():
     """Gera despesas de IPTU anual para todos os imóveis."""
     try:
@@ -739,6 +879,7 @@ def gerar_iptu_anual():
 
 
 @app.route('/despesas/gerar-condominio-mensal', methods=['POST'])
+@login_required
 def gerar_condominio_mensal():
     """Gera despesas de condomínio mensal para todos os imóveis com condomínio > 0."""
     try:
@@ -813,6 +954,7 @@ def gerar_condominio_mensal():
 # ============================================================================
 
 @app.route('/receitas')
+@login_required
 def listar_receitas():
     """Lista todas as receitas."""
     status = request.args.get('status', '')
@@ -835,6 +977,7 @@ def listar_receitas():
 
 
 @app.route('/receitas/gerar-faturamento-mensal', methods=['POST'])
+@login_required
 def gerar_faturamento_mensal():
     """Gera receitas de aluguel para todos os contratos ativos no mês corrente."""
     try:
@@ -924,6 +1067,7 @@ def gerar_faturamento_mensal():
 
 
 @app.route('/receitas/nova', methods=['GET', 'POST'])
+@login_required
 def nova_receita():
     """Cadastra nova receita."""
     if request.method == 'POST':
@@ -982,6 +1126,7 @@ def nova_receita():
 
 
 @app.route('/receitas/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
 def editar_receita(id):
     """Edita uma receita existente."""
     receita = db.get_by_id('receitas', id)
@@ -1040,6 +1185,7 @@ def editar_receita(id):
 
 
 @app.route('/receitas/<int:id>/excluir', methods=['POST'])
+@login_required
 def excluir_receita(id):
     """Exclui uma receita."""
     try:
@@ -1054,6 +1200,7 @@ def excluir_receita(id):
 
 
 @app.route('/receitas/<int:id>/receber', methods=['POST'])
+@login_required
 def receber_receita(id):
     """Marca uma receita como recebida."""
     try:
@@ -1084,9 +1231,222 @@ def receber_receita(id):
 # ============================================================================
 
 @app.route('/relatorios')
+@login_required
 def listar_relatorios():
     """Página de relatórios."""
     return render_template('relatorios/index.html')
+
+
+@app.route('/relatorios/despesas-pendentes')
+@login_required
+def relatorio_despesas_pendentes():
+    """Relatório de despesas pendentes."""
+    # Filtros
+    filtro_tipo = request.args.get('tipo', '')
+    filtro_vencimento = request.args.get('vencimento_ate', '')
+    filtro_situacao = request.args.get('situacao', 'todas')
+
+    hoje = date.today()
+
+    # Query base - despesas não pagas
+    query = """
+        SELECT d.*, i.endereco_completo as imovel_endereco
+        FROM despesas d
+        LEFT JOIN imoveis i ON d.id_imovel = i.id
+        WHERE d.data_pagamento IS NULL
+    """
+    params = []
+
+    # Aplicar filtro de tipo
+    if filtro_tipo:
+        query += " AND d.tipo_despesa = ?"
+        params.append(filtro_tipo)
+
+    # Aplicar filtro de vencimento
+    if filtro_vencimento:
+        query += " AND d.vencimento_previsto <= ?"
+        params.append(filtro_vencimento)
+
+    # Aplicar filtro de situação
+    if filtro_situacao == 'vencidas':
+        query += " AND d.vencimento_previsto < ?"
+        params.append(hoje.strftime('%Y-%m-%d'))
+    elif filtro_situacao == 'a_vencer':
+        query += " AND d.vencimento_previsto >= ?"
+        params.append(hoje.strftime('%Y-%m-%d'))
+
+    query += " ORDER BY d.vencimento_previsto ASC"
+
+    despesas = db.execute_query(query, tuple(params))
+
+    # Adicionar flag de vencida e calcular estatísticas
+    total_valor = 0
+    total_vencidas = 0
+    total_a_vencer = 0
+
+    for despesa in despesas:
+        venc = despesa.get('vencimento_previsto')
+        if venc:
+            try:
+                venc_date = datetime.strptime(venc, '%Y-%m-%d').date()
+                despesa['vencida'] = venc_date < hoje
+                if despesa['vencida']:
+                    total_vencidas += 1
+                else:
+                    total_a_vencer += 1
+            except:
+                despesa['vencida'] = False
+                total_a_vencer += 1
+        else:
+            despesa['vencida'] = False
+            total_a_vencer += 1
+
+        total_valor += despesa.get('valor_previsto', 0) or 0
+
+    return render_template('relatorios/despesas_pendentes.html',
+                         despesas=despesas,
+                         total_despesas=len(despesas),
+                         total_valor=total_valor,
+                         total_vencidas=total_vencidas,
+                         total_a_vencer=total_a_vencer,
+                         filtro_tipo=filtro_tipo,
+                         filtro_vencimento=filtro_vencimento,
+                         filtro_situacao=filtro_situacao)
+
+
+@app.route('/relatorios/despesas-pendentes/excel')
+@login_required
+def relatorio_despesas_pendentes_excel():
+    """Exporta relatório de despesas pendentes para Excel."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+    # Filtros
+    filtro_tipo = request.args.get('tipo', '')
+    filtro_vencimento = request.args.get('vencimento_ate', '')
+    filtro_situacao = request.args.get('situacao', 'todas')
+
+    hoje = date.today()
+
+    # Query base - despesas não pagas
+    query = """
+        SELECT d.*, i.endereco_completo as imovel_endereco
+        FROM despesas d
+        LEFT JOIN imoveis i ON d.id_imovel = i.id
+        WHERE d.data_pagamento IS NULL
+    """
+    params = []
+
+    if filtro_tipo:
+        query += " AND d.tipo_despesa = ?"
+        params.append(filtro_tipo)
+
+    if filtro_vencimento:
+        query += " AND d.vencimento_previsto <= ?"
+        params.append(filtro_vencimento)
+
+    if filtro_situacao == 'vencidas':
+        query += " AND d.vencimento_previsto < ?"
+        params.append(hoje.strftime('%Y-%m-%d'))
+    elif filtro_situacao == 'a_vencer':
+        query += " AND d.vencimento_previsto >= ?"
+        params.append(hoje.strftime('%Y-%m-%d'))
+
+    query += " ORDER BY d.vencimento_previsto ASC"
+
+    despesas = db.execute_query(query, tuple(params))
+
+    # Criar Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Despesas Pendentes"
+
+    # Estilos
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    header_align = Alignment(horizontal="center", vertical="center")
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+
+    # Título
+    ws.merge_cells('A1:G1')
+    ws['A1'] = f"RELATÓRIO DE DESPESAS PENDENTES - Gerado em {hoje.strftime('%d/%m/%Y')}"
+    ws['A1'].font = Font(bold=True, size=14)
+    ws['A1'].alignment = Alignment(horizontal="center")
+
+    # Cabeçalhos
+    headers = ['ID', 'Imóvel', 'Tipo', 'Descrição', 'Vencimento', 'Valor', 'Situação']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=3, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_align
+        cell.border = border
+
+    # Dados
+    total_valor = 0
+    for row_num, despesa in enumerate(despesas, 4):
+        venc = despesa.get('vencimento_previsto')
+        try:
+            venc_date = datetime.strptime(venc, '%Y-%m-%d').date() if venc else None
+            situacao = "VENCIDA" if venc_date and venc_date < hoje else "A Vencer"
+        except:
+            situacao = "A Vencer"
+
+        venc_formatado = datetime.strptime(venc, '%Y-%m-%d').strftime('%d/%m/%Y') if venc else ""
+        valor = despesa.get('valor_previsto', 0) or 0
+        total_valor += valor
+
+        dados = [
+            despesa.get('id'),
+            despesa.get('imovel_endereco', ''),
+            despesa.get('tipo_despesa', ''),
+            despesa.get('motivo_despesa', ''),
+            venc_formatado,
+            valor,
+            situacao
+        ]
+
+        for col, valor_celula in enumerate(dados, 1):
+            cell = ws.cell(row=row_num, column=col, value=valor_celula)
+            cell.border = border
+            if col == 6:  # Valor
+                cell.number_format = 'R$ #,##0.00'
+
+    # Total
+    row_total = len(despesas) + 4
+    ws.cell(row=row_total, column=5, value="TOTAL:").font = Font(bold=True)
+    total_cell = ws.cell(row=row_total, column=6, value=total_valor)
+    total_cell.font = Font(bold=True)
+    total_cell.number_format = 'R$ #,##0.00'
+
+    # Ajustar largura das colunas
+    ws.column_dimensions['A'].width = 8
+    ws.column_dimensions['B'].width = 35
+    ws.column_dimensions['C'].width = 15
+    ws.column_dimensions['D'].width = 25
+    ws.column_dimensions['E'].width = 15
+    ws.column_dimensions['F'].width = 15
+    ws.column_dimensions['G'].width = 12
+
+    # Salvar em memória
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    nome_arquivo = f'despesas_pendentes_{timestamp}.xlsx'
+
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=nome_arquivo
+    )
 
 
 # ============================================================================
@@ -1094,12 +1454,15 @@ def listar_relatorios():
 # ============================================================================
 
 @app.route('/dados')
+@login_required
 def pagina_dados():
     """Pagina de exportacao e importacao de dados."""
-    return render_template('dados/index.html')
+    ultimo_backup = obter_ultimo_backup()
+    return render_template('dados/index.html', ultimo_backup=ultimo_backup)
 
 
 @app.route('/dados/exportar')
+@login_required
 def exportar_dados():
     """Exporta todas as tabelas para um arquivo ZIP com CSVs."""
     try:
@@ -1188,6 +1551,7 @@ Em caso de duvidas, consulte a documentacao do sistema.
 
 
 @app.route('/dados/importar', methods=['POST'])
+@login_required
 def importar_dados():
     """Importa dados de um arquivo ZIP com CSVs."""
     try:
@@ -1282,6 +1646,58 @@ def importar_dados():
         flash(f'Erro ao importar: {str(e)}', 'danger')
 
     return redirect(url_for('pagina_dados'))
+
+
+@app.route('/dados/executar-backup', methods=['POST'])
+@login_required
+def executar_backup():
+    """Executa backup do banco de dados e salva na pasta backups/."""
+    try:
+        sucesso, resultado = backup_system.backup_sqlite()
+        if sucesso:
+            flash(f'Backup criado com sucesso! Arquivo: {os.path.basename(resultado)}', 'success')
+        else:
+            flash(f'Erro ao criar backup: {resultado}', 'danger')
+    except Exception as e:
+        flash(f'Erro ao criar backup: {str(e)}', 'danger')
+
+    return redirect(url_for('pagina_dados'))
+
+
+@app.route('/dados/backup')
+@login_required
+def backup_banco():
+    """Faz download do arquivo de banco de dados SQLite."""
+    try:
+        import shutil
+
+        # Caminho do banco de dados
+        db_path = os.path.join(os.path.dirname(__file__), 'database', 'imobipro.db')
+
+        if not os.path.exists(db_path):
+            flash('Arquivo de banco de dados não encontrado.', 'danger')
+            return redirect(url_for('pagina_dados'))
+
+        # Criar cópia temporária para evitar problemas de lock
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        temp_dir = tempfile.mkdtemp()
+        nome_backup = f'imobipro_backup_{timestamp}.db'
+        temp_path = os.path.join(temp_dir, nome_backup)
+
+        # Copiar banco de dados
+        shutil.copy2(db_path, temp_path)
+
+        # Enviar arquivo para download
+        return send_file(
+            temp_path,
+            mimetype='application/x-sqlite3',
+            as_attachment=True,
+            download_name=nome_backup
+        )
+
+    except Exception as e:
+        flash(f'Erro ao fazer backup: {str(e)}', 'danger')
+        return redirect(url_for('pagina_dados'))
 
 
 # ============================================================================
