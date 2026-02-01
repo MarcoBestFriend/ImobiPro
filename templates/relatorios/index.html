@@ -53,16 +53,16 @@
         </div>
     </div>
     
-    <div class="card" style="cursor: pointer;" onclick="alert('Funcionalidade em desenvolvimento')">
+    <a href="{{ url_for('relatorio_imoveis_desocupados') }}" class="card" style="cursor: pointer; text-decoration: none; border: 2px solid var(--success);">
         <div style="text-align: center; padding: var(--spacing-lg);">
             <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">🏘️</div>
-            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-sm);">Imóveis Disponíveis</h3>
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-sm);">Imóveis Desocupados</h3>
             <p style="color: var(--text-muted); margin-bottom: var(--spacing-md);">
-                Lista de imóveis disponíveis para locação
+                Lista de imóveis disponíveis para locação com filtro por proprietário
             </p>
-            <button class="btn btn-primary">Gerar Lista</button>
+            <span class="btn btn-success">Ver Relatório</span>
         </div>
-    </div>
+    </a>
     
     <div class="card" style="cursor: pointer;" onclick="alert('Funcionalidade em desenvolvimento')">
         <div style="text-align: center; padding: var(--spacing-lg);">

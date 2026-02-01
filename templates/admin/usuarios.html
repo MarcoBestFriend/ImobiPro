@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Administracao de Usuarios - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>Administracao de Usuarios</h2>
+            <p>Gerenciar usuarios do sistema</p>
+        </div>
+        <a href="{{ url_for('novo_usuario') }}" class="btn btn-primary">+ Novo Usuario</a>
+    </div>
+</div>
+
+<!-- Estatisticas -->
+<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: var(--spacing-lg);">
+    <div class="stat-card">
+        <div class="stat-label">Total de Usuarios</div>
+        <div class="stat-value">{{ usuarios|length }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Ativos</div>
+        <div class="stat-value" style="color: var(--success);">{{ usuarios|selectattr('ativo', 'equalto', 1)|list|length }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Administradores</div>
+        <div class="stat-value" style="color: var(--accent);">{{ usuarios|selectattr('admin', 'equalto', 1)|list|length }}</div>
+    </div>
+</div>
+
+<!-- Tabela de Usuarios -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Lista de Usuarios</h3>
+    </div>
+
+    {% if usuarios %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuario</th>
+                        <th>Nome Completo</th>
+                        <th>Email</th>
+                        <th>Tipo</th>
+                        <th>Status</th>
+                        <th>Ultimo Acesso</th>
+                        <th>Acoes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td style="font-family: monospace; color: var(--text-muted);">#{{ usuario.id }}</td>
+                        <td style="font-weight: 500; color: var(--text-primary);">{{ usuario.username }}</td>
+                        <td>{{ usuario.nome_completo }}</td>
+                        <td style="color: var(--text-secondary);">{{ usuario.email or '-' }}</td>
+                        <td>
+                            {% if usuario.admin == 1 %}
+                                <span class="badge badge-info">Admin</span>
+                            {% else %}
+                                <span class="badge badge-secondary">Usuario</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if usuario.ativo == 1 %}
+                                <span class="badge badge-success">Ativo</span>
+                            {% else %}
+                                <span class="badge badge-danger">Inativo</span>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--text-muted); font-size: 0.875rem;">
+                            {{ usuario.ultimo_acesso|formatar_data if usuario.ultimo_acesso else 'Nunca' }}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <a href="{{ url_for('editar_usuario', id=usuario.id) }}" class="btn btn-primary" style="padding: 0.375rem 0.75rem; font-size: 0.8rem;">
+                                    Editar
+                                </a>
+
+                                {% if usuario.id != current_user.id %}
+                                    <form action="{{ url_for('toggle_usuario_ativo', id=usuario.id) }}" method="POST" style="margin: 0;">
+                                        {% if usuario.ativo == 1 %}
+                                            <button type="submit" class="btn btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.8rem;">
+                                                Desativar
+                                            </button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-success" style="padding: 0.375rem 0.75rem; font-size: 0.8rem;">
+                                                Ativar
+                                            </button>
+                                        {% endif %}
+                                    </form>
+
+                                    <form action="{{ url_for('excluir_usuario', id=usuario.id) }}" method="POST" style="margin: 0;"
+                                          onsubmit="return confirm('Tem certeza que deseja EXCLUIR este usuario? Esta acao nao pode ser desfeita.');">
+                                        <button type="submit" class="btn btn-danger" style="padding: 0.375rem 0.75rem; font-size: 0.8rem;">
+                                            Excluir
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <span style="color: var(--text-muted); font-size: 0.8rem; padding: 0.375rem;">(voce)</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-muted);">
+            <p>Nenhum usuario cadastrado.</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Informacoes -->
+<div class="card" style="margin-top: var(--spacing-lg);">
+    <div class="card-header">
+        <h3 class="card-title">Informacoes</h3>
+    </div>
+    <div style="color: var(--text-secondary);">
+        <p><strong>Admin:</strong> Pode acessar esta area e gerenciar usuarios.</p>
+        <p><strong>Usuario:</strong> Acesso normal ao sistema, sem permissao para gerenciar usuarios.</p>
+        <p style="margin-top: var(--spacing-sm); color: var(--text-muted);">
+            Usuarios inativos nao conseguem fazer login no sistema.
+        </p>
+    </div>
+</div>
+{% endblock %}

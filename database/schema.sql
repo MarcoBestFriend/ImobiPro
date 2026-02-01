@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS imoveis (
     tipo_imovel TEXT NOT NULL,                  -- Descrição do imóvel (aposentos, conservação)
 
     -- Proprietário
-    id_proprietario INTEGER,                   -- FK → pessoas.id
+    id_proprietario INTEGER,                   -- FK → pessoas.id (legado)
+    proprietario TEXT,                         -- Nome do proprietário (Marco, Beatriz, Gilma, Antonio, Marco e Bia)
 
     -- Status (calculado dinamicamente)
     ocupado TEXT DEFAULT 'Não',                -- Ocupado (Sim/Não)
@@ -53,7 +54,8 @@ CREATE TABLE IF NOT EXISTS imoveis (
 
     -- Validações
     CHECK(forma_pagamento_iptu IN ('Anual', 'Mensal')),
-    CHECK(ocupado IN ('Sim', 'Não'))
+    CHECK(ocupado IN ('Sim', 'Não')),
+    CHECK(proprietario IS NULL OR proprietario IN ('Marco', 'Beatriz', 'Gilma', 'Antonio', 'Marco e Bia'))
 );
 
 -- ============================================================================
@@ -404,6 +406,41 @@ JOIN imoveis i ON c.id_imovel = i.id
 JOIN pessoas p ON c.id_inquilino = p.id
 WHERE r.status IN ('Pendente', 'Atrasado')
 ORDER BY r.vencimento_previsto;
+
+-- ============================================================================
+-- TABELA: usuarios
+-- Sistema de autenticação
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    -- Dados de login
+    username TEXT NOT NULL UNIQUE,             -- Nome de usuário
+    senha_hash TEXT NOT NULL,                  -- Senha criptografada (werkzeug)
+
+    -- Dados pessoais
+    nome_completo TEXT NOT NULL,               -- Nome para exibição
+    email TEXT,                                -- Email (opcional)
+
+    -- Controle de acesso
+    ativo INTEGER DEFAULT 1,                   -- 0=Inativo, 1=Ativo
+    admin INTEGER DEFAULT 0,                   -- 0=Usuário normal, 1=Administrador
+
+    -- Controle
+    ultimo_acesso TIMESTAMP,                   -- Último login
+    data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Índice para busca rápida por username
+CREATE INDEX IF NOT EXISTS idx_usuarios_username ON usuarios(username);
+
+-- Trigger: Atualizar timestamp de usuários
+CREATE TRIGGER IF NOT EXISTS update_usuarios_timestamp
+AFTER UPDATE ON usuarios
+BEGIN
+    UPDATE usuarios SET data_atualizacao = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
 
 -- ============================================================================
 -- DADOS INICIAIS

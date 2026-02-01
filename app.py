@@ -10,7 +10,9 @@ Descrição: Aplicação Flask principal com todas as rotas e funcionalidades
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date
+from functools import wraps
 import os
 import csv
 import zipfile
@@ -43,17 +45,58 @@ login_manager.login_message_category = 'warning'
 
 
 class User(UserMixin):
-    """Classe simples de usuário para Flask-Login."""
-    def __init__(self, id):
+    """Classe de usuário para Flask-Login usando banco de dados."""
+    def __init__(self, id, username, nome_completo, email, ativo, admin):
         self.id = id
+        self.username = username
+        self.nome_completo = nome_completo
+        self.email = email
+        self.ativo = ativo
+        self.admin = admin
+
+    def is_admin(self):
+        """Verifica se o usuário é administrador."""
+        return self.admin == 1
+
+    @staticmethod
+    def get_by_id(user_id):
+        """Busca usuário pelo ID no banco de dados."""
+        usuario = db.execute_query(
+            "SELECT id, username, nome_completo, email, ativo, admin FROM usuarios WHERE id = ? AND ativo = 1",
+            (user_id,)
+        )
+        if usuario:
+            u = usuario[0]
+            return User(u['id'], u['username'], u['nome_completo'], u['email'], u['ativo'], u['admin'])
+        return None
+
+    @staticmethod
+    def get_by_username(username):
+        """Busca usuário pelo username no banco de dados."""
+        usuario = db.execute_query(
+            "SELECT id, username, senha_hash, nome_completo, email, ativo, admin FROM usuarios WHERE username = ? AND ativo = 1",
+            (username,)
+        )
+        if usuario:
+            return usuario[0]
+        return None
 
 
 @login_manager.user_loader
 def load_user(user_id):
     """Carrega o usuário pelo ID."""
-    if user_id == 'admin':
-        return User('admin')
-    return None
+    return User.get_by_id(user_id)
+
+
+def admin_required(f):
+    """Decorator que exige que o usuário seja administrador."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin():
+            flash('Acesso negado. Você precisa ser administrador.', 'danger')
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # ============================================================================
 # BACKUP AUTOMÁTICO
@@ -167,12 +210,28 @@ def login():
         username = request.form.get('username', '')
         password = request.form.get('password', '')
 
-        # Verificar credenciais
-        if username == app.config.get('LOGIN_USERNAME', 'admin') and \
-           password == app.config.get('LOGIN_PASSWORD', 'imobipro2026'):
-            user = User(username)
+        # Buscar usuário no banco de dados
+        usuario_db = User.get_by_username(username)
+
+        if usuario_db and check_password_hash(usuario_db['senha_hash'], password):
+            # Criar objeto User e fazer login
+            user = User(
+                usuario_db['id'],
+                usuario_db['username'],
+                usuario_db['nome_completo'],
+                usuario_db['email'],
+                usuario_db['ativo'],
+                usuario_db['admin']
+            )
             login_user(user, remember=True)
-            flash('Login realizado com sucesso!', 'success')
+
+            # Atualizar último acesso
+            db.execute_update(
+                "UPDATE usuarios SET ultimo_acesso = CURRENT_TIMESTAMP WHERE id = ?",
+                (usuario_db['id'],)
+            )
+
+            flash(f'Bem-vindo, {usuario_db["nome_completo"]}!', 'success')
 
             # Redirecionar para a página original ou dashboard
             next_page = request.args.get('next')
@@ -190,6 +249,190 @@ def logout():
     logout_user()
     flash('Você saiu do sistema.', 'info')
     return redirect(url_for('login'))
+
+
+# ============================================================================
+# ROTAS - ADMINISTRAÇÃO DE USUÁRIOS
+# ============================================================================
+
+@app.route('/admin/usuarios')
+@login_required
+@admin_required
+def listar_usuarios():
+    """Lista todos os usuários do sistema."""
+    usuarios = db.execute_query("""
+        SELECT id, username, nome_completo, email, ativo, admin, ultimo_acesso, data_cadastro
+        FROM usuarios
+        ORDER BY nome_completo
+    """)
+    return render_template('admin/usuarios.html', usuarios=usuarios)
+
+
+@app.route('/admin/usuarios/novo', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def novo_usuario():
+    """Cadastra novo usuário."""
+    if request.method == 'POST':
+        try:
+            username = request.form.get('username', '').strip().lower()
+            senha = request.form.get('senha', '')
+            nome_completo = request.form.get('nome_completo', '').strip()
+            email = request.form.get('email', '').strip()
+            admin = 1 if request.form.get('admin') else 0
+
+            # Validações
+            if not username or not senha or not nome_completo:
+                flash('Username, senha e nome completo são obrigatórios!', 'danger')
+                return render_template('admin/usuario_form.html', usuario=None)
+
+            if len(senha) < 6:
+                flash('A senha deve ter no mínimo 6 caracteres!', 'danger')
+                return render_template('admin/usuario_form.html', usuario=None)
+
+            # Verificar se username já existe
+            existente = db.execute_query("SELECT id FROM usuarios WHERE username = ?", (username,))
+            if existente:
+                flash('Este nome de usuário já está em uso!', 'danger')
+                return render_template('admin/usuario_form.html', usuario=None)
+
+            # Criar hash da senha
+            senha_hash = generate_password_hash(senha)
+
+            # Inserir usuário
+            dados = {
+                'username': username,
+                'senha_hash': senha_hash,
+                'nome_completo': nome_completo,
+                'email': email or None,
+                'admin': admin,
+                'ativo': 1
+            }
+
+            usuario_id = db.insert('usuarios', dados)
+
+            if usuario_id:
+                flash(f'Usuário "{username}" criado com sucesso!', 'success')
+                return redirect(url_for('listar_usuarios'))
+            else:
+                flash('Erro ao criar usuário.', 'danger')
+
+        except Exception as e:
+            flash(f'Erro: {str(e)}', 'danger')
+
+    return render_template('admin/usuario_form.html', usuario=None)
+
+
+@app.route('/admin/usuarios/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def editar_usuario(id):
+    """Edita um usuário existente."""
+    usuario = db.get_by_id('usuarios', id)
+
+    if not usuario:
+        flash('Usuário não encontrado.', 'danger')
+        return redirect(url_for('listar_usuarios'))
+
+    if request.method == 'POST':
+        try:
+            nome_completo = request.form.get('nome_completo', '').strip()
+            email = request.form.get('email', '').strip()
+            admin = 1 if request.form.get('admin') else 0
+            ativo = 1 if request.form.get('ativo') else 0
+            nova_senha = request.form.get('nova_senha', '')
+
+            if not nome_completo:
+                flash('Nome completo é obrigatório!', 'danger')
+                return render_template('admin/usuario_form.html', usuario=usuario)
+
+            # Preparar dados para atualização
+            dados = {
+                'nome_completo': nome_completo,
+                'email': email or None,
+                'admin': admin,
+                'ativo': ativo
+            }
+
+            # Se nova senha foi informada, atualizar
+            if nova_senha:
+                if len(nova_senha) < 6:
+                    flash('A senha deve ter no mínimo 6 caracteres!', 'danger')
+                    return render_template('admin/usuario_form.html', usuario=usuario)
+                dados['senha_hash'] = generate_password_hash(nova_senha)
+
+            if db.update('usuarios', dados, 'id = ?', (id,)):
+                flash('Usuário atualizado com sucesso!', 'success')
+                return redirect(url_for('listar_usuarios'))
+            else:
+                flash('Erro ao atualizar usuário.', 'danger')
+
+        except Exception as e:
+            flash(f'Erro: {str(e)}', 'danger')
+
+    return render_template('admin/usuario_form.html', usuario=usuario)
+
+
+@app.route('/admin/usuarios/<int:id>/excluir', methods=['POST'])
+@login_required
+@admin_required
+def excluir_usuario(id):
+    """Exclui um usuário."""
+    # Não permitir excluir a si mesmo
+    if current_user.id == id:
+        flash('Você não pode excluir seu próprio usuário!', 'danger')
+        return redirect(url_for('listar_usuarios'))
+
+    # Verificar se é o último admin
+    admins = db.execute_query("SELECT COUNT(*) as total FROM usuarios WHERE admin = 1 AND ativo = 1")
+    usuario = db.get_by_id('usuarios', id)
+
+    if usuario and usuario['admin'] == 1 and admins[0]['total'] <= 1:
+        flash('Não é possível excluir o último administrador!', 'danger')
+        return redirect(url_for('listar_usuarios'))
+
+    try:
+        if db.delete('usuarios', 'id = ?', (id,)):
+            flash('Usuário excluído com sucesso!', 'success')
+        else:
+            flash('Erro ao excluir usuário.', 'danger')
+    except Exception as e:
+        flash(f'Erro: {str(e)}', 'danger')
+
+    return redirect(url_for('listar_usuarios'))
+
+
+@app.route('/admin/usuarios/<int:id>/toggle-ativo', methods=['POST'])
+@login_required
+@admin_required
+def toggle_usuario_ativo(id):
+    """Ativa/desativa um usuário."""
+    # Não permitir desativar a si mesmo
+    if current_user.id == id:
+        flash('Você não pode desativar seu próprio usuário!', 'danger')
+        return redirect(url_for('listar_usuarios'))
+
+    usuario = db.get_by_id('usuarios', id)
+    if not usuario:
+        flash('Usuário não encontrado.', 'danger')
+        return redirect(url_for('listar_usuarios'))
+
+    novo_status = 0 if usuario['ativo'] == 1 else 1
+
+    # Se está desativando, verificar se é o último admin ativo
+    if novo_status == 0 and usuario['admin'] == 1:
+        admins_ativos = db.execute_query("SELECT COUNT(*) as total FROM usuarios WHERE admin = 1 AND ativo = 1")
+        if admins_ativos[0]['total'] <= 1:
+            flash('Não é possível desativar o último administrador ativo!', 'danger')
+            return redirect(url_for('listar_usuarios'))
+
+    if db.update('usuarios', {'ativo': novo_status}, 'id = ?', (id,)):
+        status_texto = 'ativado' if novo_status == 1 else 'desativado'
+        flash(f'Usuário {status_texto} com sucesso!', 'success')
+    else:
+        flash('Erro ao alterar status do usuário.', 'danger')
+
+    return redirect(url_for('listar_usuarios'))
 
 
 # ============================================================================
@@ -264,7 +507,7 @@ def novo_imovel():
                 'inscricao_imobiliaria': request.form.get('inscricao_imobiliaria'),
                 'matricula': request.form.get('matricula'),
                 'tipo_imovel': request.form.get('tipo_imovel'),
-                'id_proprietario': request.form.get('id_proprietario') or None,
+                'proprietario': request.form.get('proprietario') or None,
                 'valor_iptu_anual': request.form.get('valor_iptu_anual') or None,
                 'forma_pagamento_iptu': request.form.get('forma_pagamento_iptu', 'Anual'),
                 'aluguel_pretendido': request.form.get('aluguel_pretendido') or None,
@@ -283,8 +526,7 @@ def novo_imovel():
             # Validar campo obrigatório
             if not dados['endereco_completo']:
                 flash('Endereço completo é obrigatório!', 'danger')
-                proprietarios = db.execute_query("SELECT id, nome_completo FROM pessoas ORDER BY nome_completo")
-                return render_template('imoveis/form.html', imovel=dados, proprietarios=proprietarios, config=app.config)
+                return render_template('imoveis/form.html', imovel=dados, config=app.config)
 
             # Inserir no banco
             imovel_id = db.insert('imoveis', dados)
@@ -298,9 +540,7 @@ def novo_imovel():
         except Exception as e:
             flash(f'Erro: {str(e)}', 'danger')
 
-    # Buscar proprietários para o select
-    proprietarios = db.execute_query("SELECT id, nome_completo FROM pessoas ORDER BY nome_completo")
-    return render_template('imoveis/form.html', imovel=None, proprietarios=proprietarios, config=app.config)
+    return render_template('imoveis/form.html', imovel=None, config=app.config)
 
 
 @app.route('/imoveis/<int:id>')
@@ -339,7 +579,7 @@ def editar_imovel(id):
                 'inscricao_imobiliaria': request.form.get('inscricao_imobiliaria'),
                 'matricula': request.form.get('matricula'),
                 'tipo_imovel': request.form.get('tipo_imovel'),
-                'id_proprietario': request.form.get('id_proprietario') or None,
+                'proprietario': request.form.get('proprietario') or None,
                 'valor_iptu_anual': request.form.get('valor_iptu_anual') or None,
                 'forma_pagamento_iptu': request.form.get('forma_pagamento_iptu'),
                 'aluguel_pretendido': request.form.get('aluguel_pretendido') or None,
@@ -357,8 +597,7 @@ def editar_imovel(id):
 
             if not dados['endereco_completo']:
                 flash('Endereço completo é obrigatório!', 'danger')
-                proprietarios = db.execute_query("SELECT id, nome_completo FROM pessoas ORDER BY nome_completo")
-                return render_template('imoveis/form.html', imovel=dados, proprietarios=proprietarios, config=app.config)
+                return render_template('imoveis/form.html', imovel=dados, config=app.config)
 
             if db.update('imoveis', dados, 'id = ?', (id,)):
                 flash('Imóvel atualizado com sucesso!', 'success')
@@ -369,9 +608,7 @@ def editar_imovel(id):
         except Exception as e:
             flash(f'Erro: {str(e)}', 'danger')
 
-    # Buscar proprietários para o select
-    proprietarios = db.execute_query("SELECT id, nome_completo FROM pessoas ORDER BY nome_completo")
-    return render_template('imoveis/form.html', imovel=imovel, proprietarios=proprietarios, config=app.config)
+    return render_template('imoveis/form.html', imovel=imovel, config=app.config)
 
 
 @app.route('/imoveis/<int:id>/excluir', methods=['POST'])
@@ -1440,6 +1677,158 @@ def relatorio_despesas_pendentes_excel():
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     nome_arquivo = f'despesas_pendentes_{timestamp}.xlsx'
+
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=nome_arquivo
+    )
+
+
+@app.route('/relatorios/imoveis-desocupados')
+@login_required
+def relatorio_imoveis_desocupados():
+    """Relatório de imóveis desocupados."""
+    # Filtros
+    filtro_proprietario = request.args.get('proprietario', '')
+
+    # Query base - imóveis desocupados
+    query = """
+        SELECT * FROM imoveis
+        WHERE ocupado = 'Não'
+    """
+    params = []
+
+    # Aplicar filtro de proprietário
+    if filtro_proprietario:
+        query += " AND proprietario = ?"
+        params.append(filtro_proprietario)
+
+    query += " ORDER BY endereco_completo ASC"
+
+    imoveis = db.execute_query(query, tuple(params))
+
+    # Calcular estatísticas
+    total_imoveis = len(imoveis)
+    total_aluguel_pretendido = sum(i.get('aluguel_pretendido', 0) or 0 for i in imoveis)
+    total_valor_mercado = sum(i.get('valor_mercado', 0) or 0 for i in imoveis)
+
+    return render_template('relatorios/imoveis_desocupados.html',
+                         imoveis=imoveis,
+                         total_imoveis=total_imoveis,
+                         total_aluguel_pretendido=total_aluguel_pretendido,
+                         total_valor_mercado=total_valor_mercado,
+                         filtro_proprietario=filtro_proprietario)
+
+
+@app.route('/relatorios/imoveis-desocupados/excel')
+@login_required
+def relatorio_imoveis_desocupados_excel():
+    """Exporta relatório de imóveis desocupados para Excel."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+    # Filtros
+    filtro_proprietario = request.args.get('proprietario', '')
+
+    hoje = date.today()
+
+    # Query base - imóveis desocupados
+    query = """
+        SELECT * FROM imoveis
+        WHERE ocupado = 'Não'
+    """
+    params = []
+
+    if filtro_proprietario:
+        query += " AND proprietario = ?"
+        params.append(filtro_proprietario)
+
+    query += " ORDER BY endereco_completo ASC"
+
+    imoveis = db.execute_query(query, tuple(params))
+
+    # Criar Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Imóveis Desocupados"
+
+    # Estilos
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    header_align = Alignment(horizontal="center", vertical="center")
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+
+    # Título
+    ws.merge_cells('A1:F1')
+    ws['A1'] = f"RELATÓRIO DE IMÓVEIS DESOCUPADOS - Gerado em {hoje.strftime('%d/%m/%Y')}"
+    ws['A1'].font = Font(bold=True, size=14)
+    ws['A1'].alignment = Alignment(horizontal="center")
+
+    # Cabeçalhos
+    headers = ['ID', 'Endereço', 'Proprietário', 'Tipo/Descrição', 'Aluguel Pretendido', 'Valor de Mercado']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=3, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_align
+        cell.border = border
+
+    # Dados
+    total_aluguel = 0
+    total_mercado = 0
+    for row_num, imovel in enumerate(imoveis, 4):
+        aluguel = imovel.get('aluguel_pretendido', 0) or 0
+        mercado = imovel.get('valor_mercado', 0) or 0
+        total_aluguel += aluguel
+        total_mercado += mercado
+
+        dados = [
+            imovel.get('id'),
+            imovel.get('endereco_completo', ''),
+            imovel.get('proprietario', '') or '-',
+            imovel.get('tipo_imovel', ''),
+            aluguel,
+            mercado
+        ]
+
+        for col, valor_celula in enumerate(dados, 1):
+            cell = ws.cell(row=row_num, column=col, value=valor_celula)
+            cell.border = border
+            if col in [5, 6]:  # Valores monetários
+                cell.number_format = 'R$ #,##0.00'
+
+    # Total
+    row_total = len(imoveis) + 4
+    ws.cell(row=row_total, column=4, value="TOTAL:").font = Font(bold=True)
+    total_aluguel_cell = ws.cell(row=row_total, column=5, value=total_aluguel)
+    total_aluguel_cell.font = Font(bold=True)
+    total_aluguel_cell.number_format = 'R$ #,##0.00'
+    total_mercado_cell = ws.cell(row=row_total, column=6, value=total_mercado)
+    total_mercado_cell.font = Font(bold=True)
+    total_mercado_cell.number_format = 'R$ #,##0.00'
+
+    # Ajustar largura das colunas
+    ws.column_dimensions['A'].width = 8
+    ws.column_dimensions['B'].width = 45
+    ws.column_dimensions['C'].width = 15
+    ws.column_dimensions['D'].width = 40
+    ws.column_dimensions['E'].width = 18
+    ws.column_dimensions['F'].width = 18
+
+    # Salvar em memória
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    nome_arquivo = f'imoveis_desocupados_{timestamp}.xlsx'
 
     return send_file(
         output,

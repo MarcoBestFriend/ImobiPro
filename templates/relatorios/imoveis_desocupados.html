@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Imóveis Desocupados - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>Imóveis Desocupados</h2>
+            <p>Lista de imóveis disponíveis para locação</p>
+        </div>
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('listar_relatorios') }}" class="btn btn-secondary">Voltar</a>
+            <a href="{{ url_for('relatorio_imoveis_desocupados_excel') }}{% if request.args %}?{{ request.query_string.decode() }}{% endif %}" class="btn btn-success">
+                Exportar Excel
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card">
+    <form method="get" action="{{ url_for('relatorio_imoveis_desocupados') }}">
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: var(--spacing-md); align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Proprietário</label>
+                <select name="proprietario" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="Marco" {% if filtro_proprietario == 'Marco' %}selected{% endif %}>Marco</option>
+                    <option value="Beatriz" {% if filtro_proprietario == 'Beatriz' %}selected{% endif %}>Beatriz</option>
+                    <option value="Gilma" {% if filtro_proprietario == 'Gilma' %}selected{% endif %}>Gilma</option>
+                    <option value="Antonio" {% if filtro_proprietario == 'Antonio' %}selected{% endif %}>Antonio</option>
+                    <option value="Marco e Bia" {% if filtro_proprietario == 'Marco e Bia' %}selected{% endif %}>Marco e Bia</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: var(--spacing-xs);">
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <a href="{{ url_for('relatorio_imoveis_desocupados') }}" class="btn btn-secondary">Limpar</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Estatísticas -->
+<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="stat-card">
+        <div class="stat-label">Total de Imóveis</div>
+        <div class="stat-value">{{ total_imoveis }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Potencial de Aluguel Mensal</div>
+        <div class="stat-value" style="font-size: 1.75rem; color: var(--success);">{{ total_aluguel_pretendido|formatar_moeda }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Valor Total de Mercado</div>
+        <div class="stat-value" style="font-size: 1.75rem; color: var(--primary);">{{ total_valor_mercado|formatar_moeda }}</div>
+    </div>
+</div>
+
+<!-- Tabela de Imóveis -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Lista de Imóveis Desocupados</h3>
+        <span class="badge badge-info">{{ imoveis|length }} registros</span>
+    </div>
+
+    {% if imoveis %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Endereço</th>
+                        <th>Proprietário</th>
+                        <th>Tipo/Descrição</th>
+                        <th>Aluguel Pretendido</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for imovel in imoveis %}
+                    <tr>
+                        <td style="font-family: monospace; color: var(--text-muted);">#{{ imovel.id }}</td>
+                        <td style="max-width: 250px;">
+                            <div style="color: var(--text-primary); font-weight: 500;">
+                                {{ imovel.endereco_completo }}
+                            </div>
+                            {% if imovel.cidade %}
+                            <div style="color: var(--text-muted); font-size: 0.85rem;">
+                                {{ imovel.cidade }}{% if imovel.estado %}/{{ imovel.estado }}{% endif %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if imovel.proprietario %}
+                                <span class="badge badge-info">{{ imovel.proprietario }}</span>
+                            {% else %}
+                                <span style="color: var(--text-muted);">-</span>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--text-secondary); max-width: 200px;">
+                            {{ imovel.tipo_imovel|truncate(40) if imovel.tipo_imovel else '-' }}
+                        </td>
+                        <td style="color: var(--success); font-weight: 600;">
+                            {{ imovel.aluguel_pretendido|formatar_moeda if imovel.aluguel_pretendido else '-' }}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="{{ url_for('ver_imovel', id=imovel.id) }}" class="btn btn-primary" style="padding: 0.375rem 0.75rem; font-size: 0.8rem;">
+                                    Ver
+                                </a>
+                                <a href="{{ url_for('editar_imovel', id=imovel.id) }}" class="btn btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.8rem;">
+                                    Editar
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-muted);">
+            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">&#127969;</div>
+            <h3 style="color: var(--text-secondary); margin-bottom: var(--spacing-sm);">
+                Nenhum imóvel desocupado!
+            </h3>
+            <p>
+                {% if filtro_proprietario %}
+                    Nenhum imóvel desocupado para o proprietário selecionado.
+                {% else %}
+                    Todos os imóveis estão ocupados.
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

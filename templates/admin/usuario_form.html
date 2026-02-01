@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if usuario else 'Novo' }} Usuario - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>{{ 'Editar Usuario' if usuario else 'Novo Usuario' }}</h2>
+            <p>{{ 'Alterar dados do usuario' if usuario else 'Cadastrar novo usuario no sistema' }}</p>
+        </div>
+        <a href="{{ url_for('listar_usuarios') }}" class="btn btn-secondary">Voltar</a>
+    </div>
+</div>
+
+<div class="card">
+    <form method="POST" action="{{ url_for('editar_usuario', id=usuario.id) if usuario else url_for('novo_usuario') }}">
+
+        <!-- Dados de Login -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                Dados de Login
+            </h3>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Nome de Usuario *</label>
+                    {% if usuario %}
+                        <input type="text" class="form-control" value="{{ usuario.username }}" disabled style="background: var(--bg-tertiary); color: var(--text-muted);">
+                        <small style="color: var(--text-muted);">O nome de usuario nao pode ser alterado.</small>
+                    {% else %}
+                        <input type="text" name="username" class="form-control" placeholder="Ex: joao.silva" required
+                               pattern="[a-z0-9._]+" title="Apenas letras minusculas, numeros, ponto e underline">
+                        <small style="color: var(--text-muted);">Apenas letras minusculas, numeros, ponto e underline. Sera usado para login.</small>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">{{ 'Nova Senha' if usuario else 'Senha *' }}</label>
+                    <input type="password" name="{{ 'nova_senha' if usuario else 'senha' }}" class="form-control"
+                           placeholder="{{ 'Deixe em branco para manter a atual' if usuario else 'Minimo 6 caracteres' }}"
+                           {{ '' if usuario else 'required' }} minlength="6">
+                    {% if usuario %}
+                        <small style="color: var(--text-muted);">Deixe em branco para manter a senha atual.</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Dados Pessoais -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                Dados Pessoais
+            </h3>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                <div class="form-group">
+                    <label class="form-label">Nome Completo *</label>
+                    <input type="text" name="nome_completo" class="form-control" placeholder="Nome para exibicao"
+                           value="{{ usuario.nome_completo if usuario else '' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" placeholder="email@exemplo.com"
+                           value="{{ usuario.email if usuario else '' }}">
+                </div>
+            </div>
+        </div>
+
+        <!-- Permissoes -->
+        <div style="margin-bottom: var(--spacing-lg);">
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-md); padding-bottom: var(--spacing-sm); border-bottom: 1px solid var(--border);">
+                Permissoes
+            </h3>
+
+            <div style="display: flex; gap: var(--spacing-lg); flex-wrap: wrap;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--text-secondary);">
+                    <input type="checkbox" name="admin" value="1"
+                           {{ 'checked' if usuario and usuario.admin == 1 else '' }}
+                           style="width: 18px; height: 18px; cursor: pointer;">
+                    <span>Administrador</span>
+                    <small style="color: var(--text-muted);">(pode gerenciar usuarios)</small>
+                </label>
+
+                {% if usuario %}
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--text-secondary);">
+                    <input type="checkbox" name="ativo" value="1"
+                           {{ 'checked' if usuario.ativo == 1 else '' }}
+                           style="width: 18px; height: 18px; cursor: pointer;">
+                    <span>Usuario Ativo</span>
+                    <small style="color: var(--text-muted);">(pode fazer login)</small>
+                </label>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Botoes -->
+        <div style="display: flex; gap: var(--spacing-sm); padding-top: var(--spacing-md); border-top: 1px solid var(--border);">
+            <button type="submit" class="btn btn-primary">
+                {{ 'Salvar Alteracoes' if usuario else 'Criar Usuario' }}
+            </button>
+            <a href="{{ url_for('listar_usuarios') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+{% if usuario %}
+<!-- Informacoes do Usuario -->
+<div class="card" style="margin-top: var(--spacing-lg);">
+    <div class="card-header">
+        <h3 class="card-title">Informacoes do Cadastro</h3>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-md); color: var(--text-secondary);">
+        <div>
+            <strong>ID:</strong> #{{ usuario.id }}
+        </div>
+        <div>
+            <strong>Cadastrado em:</strong> {{ usuario.data_cadastro|formatar_data if usuario.data_cadastro else '-' }}
+        </div>
+        <div>
+            <strong>Ultimo acesso:</strong> {{ usuario.ultimo_acesso|formatar_data if usuario.ultimo_acesso else 'Nunca' }}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

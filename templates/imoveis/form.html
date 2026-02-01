@@ -30,14 +30,14 @@
                                 <small class="text-muted">Ex: Rua das Flores, 123, Apto 101, Centro</small>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label for="id_proprietario" class="form-label">Proprietário</label>
-                                <select class="form-select" id="id_proprietario" name="id_proprietario">
+                                <label for="proprietario" class="form-label">Proprietário</label>
+                                <select class="form-select" id="proprietario" name="proprietario">
                                     <option value="">Selecione...</option>
-                                    {% for pessoa in proprietarios %}
-                                    <option value="{{ pessoa.id }}" {{ 'selected' if imovel and imovel.id_proprietario == pessoa.id else '' }}>
-                                        {{ pessoa.nome_completo }}
-                                    </option>
-                                    {% endfor %}
+                                    <option value="Marco" {{ 'selected' if imovel and imovel.proprietario == 'Marco' else '' }}>Marco</option>
+                                    <option value="Beatriz" {{ 'selected' if imovel and imovel.proprietario == 'Beatriz' else '' }}>Beatriz</option>
+                                    <option value="Gilma" {{ 'selected' if imovel and imovel.proprietario == 'Gilma' else '' }}>Gilma</option>
+                                    <option value="Antonio" {{ 'selected' if imovel and imovel.proprietario == 'Antonio' else '' }}>Antonio</option>
+                                    <option value="Marco e Bia" {{ 'selected' if imovel and imovel.proprietario == 'Marco e Bia' else '' }}>Marco e Bia</option>
                                 </select>
                             </div>
                         </div>

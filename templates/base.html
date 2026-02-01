@@ -523,12 +523,14 @@
                             Dados
                         </a>
                     </li>
+                    {% if current_user.is_authenticated and current_user.is_admin() %}
                     <li class="nav-item">
-                        <a href="#" class="nav-link">
-                            <span class="nav-icon">⚙️</span>
-                            Configurações
+                        <a href="{{ url_for('listar_usuarios') }}" class="nav-link {% if 'usuario' in request.endpoint %}active{% endif %}">
+                            <span class="nav-icon">👤</span>
+                            Usuarios
                         </a>
                     </li>
+                    {% endif %}
                     <li class="nav-item" style="margin-top: 1rem;">
                         <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger);">
                             <span class="nav-icon">🚪</span>

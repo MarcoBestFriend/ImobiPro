@@ -3,7 +3,7 @@
 ## 📋 Informações Rápidas do Projeto
 
 - **Nome**: ImobiPro
-- **Versão**: 1.2.0 (CRUD completo + lançamentos automáticos + dados reais)
+- **Versão**: 1.3.0 (Sistema de login + administração de usuários + backup automático)
 - **Objetivo**: Sistema completo para gestão de imóveis, contratos, despesas e receitas de aluguéis
 - **Stack**: Python 3.10+, Flask, SQLite, Jinja2
 - **Ambiente**: Ubuntu 24.04, VSCode
@@ -49,16 +49,21 @@ python3 utils/backup.py
 
 ```
 ImobiPro/
-├── app.py                          # Aplicação Flask (~750 linhas)
+├── app.py                          # Aplicação Flask (~1500 linhas)
 ├── config.py                       # Configurações
 ├── requirements.txt                # Dependências
 ├── database/
 │   ├── schema.sql                  # Schema SQLite completo
 │   ├── db_manager.py               # Gerenciador (~500 linhas)
 │   └── imobipro.db                 # Banco de dados
+├── backups/                        # Backups automáticos (SQLite + Excel)
 ├── templates/
 │   ├── base.html                   # Base (tema dark)
+│   ├── login.html                  # Página de login
 │   ├── dashboard.html              # Dashboard principal
+│   ├── admin/
+│   │   ├── usuarios.html           # Lista de usuários
+│   │   └── usuario_form.html       # Cadastro/edição de usuário
 │   ├── imoveis/listar.html
 │   ├── imoveis/form.html           # Cadastro/edição de imóveis
 │   ├── imoveis/ver.html
@@ -70,7 +75,10 @@ ImobiPro/
 │   ├── despesas/form.html          # Cadastro/edição de despesas
 │   ├── receitas/listar.html
 │   ├── receitas/form.html          # Cadastro/edição de receitas
-│   └── relatorios/index.html
+│   ├── relatorios/
+│   │   ├── index.html              # Menu de relatórios
+│   │   └── despesas_pendentes.html # Relatório despesas pendentes
+│   └── dados/index.html            # Página de backup/importação
 ├── utils/backup.py                 # Backup/restore
 └── migrar_planilha.py             # Migração Excel→SQLite
 ```
@@ -86,7 +94,8 @@ ImobiPro/
 | inscricao_imobiliaria | TEXT | Inscrição municipal | Não |
 | matricula | TEXT | Matrícula do imóvel no cartório | Não |
 | tipo_imovel | TEXT | Descrição do imóvel (aposentos, conservação) | Sim |
-| id_proprietario | INTEGER | FK → pessoas.id | Não |
+| id_proprietario | INTEGER | FK → pessoas.id (legado) | Não |
+| proprietario | TEXT | Nome do proprietário (opções fixas) | Não |
 | ocupado | TEXT | "Sim" ou "Não" (auto) | Sim |
 | valor_iptu_anual | REAL | Valor anual IPTU | Não |
 | forma_pagamento_iptu | TEXT | "Anual" ou "Mensal" | Sim |
@@ -108,7 +117,8 @@ ImobiPro/
 - `ocupado` é atualizado por trigger (quando contrato ativo/encerrado)
 - Valores aceitos: `forma_pagamento_iptu` = "Anual" ou "Mensal"
 - Valores aceitos: `ocupado` = "Sim" ou "Não"
-- `id_proprietario` referencia a tabela pessoas
+- Valores aceitos: `proprietario` = "Marco", "Beatriz", "Gilma", "Antonio", "Marco e Bia" (ou NULL)
+- `id_proprietario` referencia a tabela pessoas (campo legado, não utilizado)
 
 ---
 
@@ -219,10 +229,37 @@ ImobiPro/
 
 ---
 
+### Tabela: usuarios
+
+| Campo | Tipo | Descrição | Obrigatório |
+|-------|------|-----------|-------------|
+| id | INTEGER | Chave primária | Sim |
+| username | TEXT | Nome de usuário (único) | Sim |
+| senha_hash | TEXT | Senha criptografada (werkzeug) | Sim |
+| nome_completo | TEXT | Nome para exibição | Sim |
+| email | TEXT | Email (opcional) | Não |
+| ativo | INTEGER | 0=Inativo, 1=Ativo | Sim |
+| admin | INTEGER | 0=Usuário, 1=Administrador | Sim |
+| ultimo_acesso | TIMESTAMP | Último login | Não |
+| data_cadastro | TIMESTAMP | Auto | Sim |
+| data_atualizacao | TIMESTAMP | Auto | Sim |
+
+**Regras**:
+- `username` deve ser único e em minúsculas
+- Senhas são armazenadas com hash (werkzeug.security)
+- Usuários inativos não podem fazer login
+- Apenas administradores podem gerenciar usuários
+
+**Usuário padrão:**
+- **Username:** `admin`
+- **Senha:** `imobipro2026`
+
+---
+
 ### Views SQL (Consultas Prontas)
 
-**vw_contratos_completos**: Contratos + imóveis + pessoas  
-**vw_despesas_pendentes**: Despesas não pagas + situação  
+**vw_contratos_completos**: Contratos + imóveis + pessoas
+**vw_despesas_pendentes**: Despesas não pagas + situação
 **vw_receitas_pendentes**: Receitas não recebidas + situação
 
 ---
@@ -267,6 +304,24 @@ db.get_estatisticas_dashboard()            # Stats completas
 ---
 
 ## 🌐 Rotas Flask
+
+### Autenticação
+```
+GET  /login                         → Página de login
+POST /login                         → Processar login
+GET  /logout                        → Fazer logout
+```
+
+### Administração de Usuários (somente admin)
+```
+GET  /admin/usuarios                → Lista de usuários
+GET  /admin/usuarios/novo           → Form novo usuário
+POST /admin/usuarios/novo           → Criar usuário
+GET  /admin/usuarios/<id>/editar    → Form editar
+POST /admin/usuarios/<id>/editar    → Processar edição
+POST /admin/usuarios/<id>/excluir   → Excluir usuário
+POST /admin/usuarios/<id>/toggle-ativo → Ativar/desativar
+```
 
 ### Dashboard
 ```
@@ -329,16 +384,20 @@ POST /receitas/<id>/excluir         → Excluir
 POST /receitas/<id>/receber         → Marcar como recebida (atalho)
 ```
 
-### Dados (Importar/Exportar)
+### Dados (Importar/Exportar/Backup)
 ```
 GET  /dados                         → Página de backup/restore
 GET  /dados/exportar                → Download ZIP com CSVs de todas as tabelas
 POST /dados/importar                → Upload ZIP para restaurar dados
+GET  /dados/backup                  → Download do arquivo SQLite
+POST /dados/executar-backup         → Criar backup na pasta backups/
 ```
 
 ### Relatórios
 ```
-GET  /relatorios                    → Página (parcial)
+GET  /relatorios                         → Página de relatórios
+GET  /relatorios/despesas-pendentes      → Relatório de despesas pendentes
+GET  /relatorios/despesas-pendentes/excel → Exportar para Excel
 ```
 
 ---
@@ -375,7 +434,7 @@ GET  /relatorios                    → Página (parcial)
 
 ---
 
-## ✅ Estado Atual (27/01/2026)
+## ✅ Estado Atual (29/01/2026)
 
 ### Dados Reais Importados
 - 29 imóveis (dados reais do arquivo imoveis2026.xlsx)
@@ -393,14 +452,41 @@ GET  /relatorios                    → Página (parcial)
 - ✅ **Lançamento automático Condomínio mensal** (vencimento conforme cadastro)
 - ✅ Importação/Exportação de dados (ZIP com CSVs)
 - ✅ Migração Excel
-- ✅ Backup
+- ✅ Backup manual e download do banco
+- ✅ **Backup automático diário** (02:00, mantém últimos 7)
+- ✅ **Sistema de login** com usuários no banco de dados
+- ✅ **Administração de usuários** (criar, editar, excluir, ativar/desativar)
+- ✅ **Relatório de Despesas Pendentes** com exportação Excel
 
 ### Planejado (NÃO FAZER SEM PERMISSÃO)
 - ⏳ Lançamento automático de receitas/aluguéis do mês
 - ⏳ Alertas de vencimento
 - ⏳ Reajustes automáticos de contratos
-- ⏳ Exportar para Excel
 - ⏳ Gerar PDFs (contratos, recibos)
+
+---
+
+## 🔐 Segurança
+
+### Sistema de Login
+- Todas as rotas exigem autenticação (exceto /login)
+- Senhas armazenadas com hash (werkzeug.security)
+- Sessão com "remember me" ativado
+- Último acesso registrado no banco
+
+### Níveis de Acesso
+- **Usuário comum:** Acesso a todas as funcionalidades do sistema
+- **Administrador:** Acesso adicional à área de gerenciamento de usuários
+
+### Credenciais Padrão
+- **Usuário:** `admin`
+- **Senha:** `imobipro2026`
+- Para alterar, acesse: Menu > Usuários > Editar
+
+### Backup Automático
+- Executa diariamente às 02:00
+- Mantém os últimos 7 backups na pasta `backups/`
+- Usa APScheduler (configurado em app.py)
 
 ---
 
