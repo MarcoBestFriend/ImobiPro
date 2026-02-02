@@ -28,7 +28,7 @@
                     <label class="form-label">Situação *</label>
                     <select name="situacao" class="form-control" required>
                         {% for sit in config.SITUACOES_PESSOA %}
-                        <option value="{{ sit }}" {% if pessoa and pessoa.situacao == sit %}selected{% endif %}>
+                        <option value="{{ sit }}" {% if pessoa and pessoa.situacao == sit %}selected{% elif not pessoa and situacao_preselect == sit %}selected{% endif %}>
                             {{ sit }}
                         </option>
                         {% endfor %}

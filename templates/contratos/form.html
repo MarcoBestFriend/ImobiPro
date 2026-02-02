@@ -51,16 +51,21 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
                 <div class="form-group">
                     <label class="form-label">Inquilino *</label>
-                    <select name="id_inquilino" class="form-control" required>
-                        <option value="">-- Selecione o inquilino --</option>
-                        {% for pessoa in inquilinos %}
-                        <option value="{{ pessoa.id }}" {% if contrato and contrato.id_inquilino == pessoa.id %}selected{% endif %}>
-                            {{ pessoa.nome_completo }}{% if pessoa.cpf_cnpj %} - {{ pessoa.cpf_cnpj }}{% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
+                    <div style="display: flex; gap: var(--spacing-xs);">
+                        <select name="id_inquilino" class="form-control" required style="flex: 1;">
+                            <option value="">-- Selecione o inquilino --</option>
+                            {% for pessoa in inquilinos %}
+                            <option value="{{ pessoa.id }}" {% if contrato and contrato.id_inquilino == pessoa.id %}selected{% endif %}>
+                                {{ pessoa.nome_completo }}{% if pessoa.cpf_cnpj %} - {{ pessoa.cpf_cnpj }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <a href="{{ url_for('nova_pessoa') }}?situacao=Inquilino" target="_blank" class="btn btn-success" style="padding: 0.5rem 0.75rem;" title="Cadastrar novo inquilino">
+                            ➕
+                        </a>
+                    </div>
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label">Tipo de Garantia *</label>
                     <select name="garantia" id="garantia" class="form-control" required onchange="toggleFiador()">
@@ -75,14 +80,19 @@
             
             <div class="form-group" id="campo-fiador" style="display: none;">
                 <label class="form-label">Fiador</label>
-                <select name="id_fiador" class="form-control">
-                    <option value="">-- Selecione o fiador --</option>
-                    {% for pessoa in fiadores %}
-                    <option value="{{ pessoa.id }}" {% if contrato and contrato.id_fiador == pessoa.id %}selected{% endif %}>
-                        {{ pessoa.nome_completo }}{% if pessoa.cpf_cnpj %} - {{ pessoa.cpf_cnpj }}{% endif %}
-                    </option>
-                    {% endfor %}
-                </select>
+                <div style="display: flex; gap: var(--spacing-xs);">
+                    <select name="id_fiador" class="form-control" style="flex: 1;">
+                        <option value="">-- Selecione o fiador --</option>
+                        {% for pessoa in fiadores %}
+                        <option value="{{ pessoa.id }}" {% if contrato and contrato.id_fiador == pessoa.id %}selected{% endif %}>
+                            {{ pessoa.nome_completo }}{% if pessoa.cpf_cnpj %} - {{ pessoa.cpf_cnpj }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <a href="{{ url_for('nova_pessoa') }}?situacao=Fiador" target="_blank" class="btn btn-success" style="padding: 0.5rem 0.75rem;" title="Cadastrar novo fiador">
+                        ➕
+                    </a>
+                </div>
                 <small style="color: var(--warning); font-size: 0.875rem;">
                     ⚠️ Fiador é obrigatório quando a garantia for "fiança"
                 </small>

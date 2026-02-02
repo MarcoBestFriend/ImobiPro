@@ -725,8 +725,11 @@ def nova_pessoa():
                 
         except Exception as e:
             flash(f'Erro: {str(e)}', 'danger')
-    
-    return render_template('pessoas/form.html', pessoa=None, config=app.config)
+
+    # Pegar situação da URL (para pré-selecionar quando vem do cadastro de contrato)
+    situacao_preselect = request.args.get('situacao', '')
+
+    return render_template('pessoas/form.html', pessoa=None, config=app.config, situacao_preselect=situacao_preselect)
 
 
 @app.route('/pessoas/<int:id>/editar', methods=['GET', 'POST'])
