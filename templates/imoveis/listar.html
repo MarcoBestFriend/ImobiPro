@@ -9,9 +9,14 @@
             <h2>🏘️ Imóveis</h2>
             <p>Gerenciamento de imóveis cadastrados</p>
         </div>
-        <a href="{{ url_for('novo_imovel') }}" class="btn btn-primary">
-            <span>➕</span> Novo Imóvel
-        </a>
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('atualizar_condominios') }}" class="btn btn-primary">
+                <span>🏢</span> Atualizar Condomínios
+            </a>
+            <a href="{{ url_for('novo_imovel') }}" class="btn btn-primary">
+                <span>➕</span> Novo Imóvel
+            </a>
+        </div>
     </div>
 </div>
 

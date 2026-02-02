@@ -165,6 +165,8 @@
                                 <div style="font-size: 0.75rem; color: var(--text-muted);">
                                     {{ despesa.data_pagamento|formatar_data }}
                                 </div>
+                            {% elif despesa.vencimento_previsto and despesa.vencimento_previsto < hoje %}
+                                <span class="badge badge-danger">Atrasada</span>
                             {% else %}
                                 <span class="badge badge-warning">Pendente</span>
                             {% endif %}

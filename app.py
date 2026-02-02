@@ -223,7 +223,7 @@ def login():
                 usuario_db['ativo'],
                 usuario_db['admin']
             )
-            login_user(user, remember=True)
+            login_user(user, remember=False)
 
             # Atualizar último acesso
             db.execute_update(
@@ -440,6 +440,7 @@ def toggle_usuario_ativo(id):
 # ============================================================================
 
 @app.route('/')
+@login_required
 def index():
     """Página inicial - redireciona para dashboard."""
     return redirect(url_for('dashboard'))
@@ -624,6 +625,48 @@ def excluir_imovel(id):
         flash(f'Erro: {str(e)}', 'danger')
     
     return redirect(url_for('listar_imoveis'))
+
+
+@app.route('/imoveis/atualizar-condominios', methods=['GET', 'POST'])
+@login_required
+def atualizar_condominios():
+    """Página para atualização em lote dos valores de condomínio."""
+    if request.method == 'POST':
+        try:
+            # Buscar todos os IDs enviados no formulário
+            atualizados = 0
+            for key, value in request.form.items():
+                if key.startswith('condominio_'):
+                    imovel_id = int(key.replace('condominio_', ''))
+                    novo_valor = value.strip()
+
+                    if novo_valor:
+                        # Converter para float (aceita vírgula ou ponto)
+                        novo_valor = float(novo_valor.replace(',', '.'))
+
+                        # Atualizar no banco
+                        if db.update('imoveis', {'condominio_sugerido': novo_valor}, 'id = ?', (imovel_id,)):
+                            atualizados += 1
+
+            if atualizados > 0:
+                flash(f'Valores atualizados com sucesso! {atualizados} imóvel(is) alterado(s).', 'success')
+            else:
+                flash('Nenhum valor foi alterado.', 'info')
+
+            return redirect(url_for('listar_imoveis'))
+
+        except Exception as e:
+            flash(f'Erro ao atualizar: {str(e)}', 'danger')
+
+    # GET: Buscar imóveis com condomínio > 0
+    imoveis = db.execute_query("""
+        SELECT id, endereco_completo, condominio_sugerido, dia_venc_condominio
+        FROM imoveis
+        WHERE condominio_sugerido IS NOT NULL AND condominio_sugerido > 0
+        ORDER BY endereco_completo
+    """)
+
+    return render_template('imoveis/atualizar_condominios.html', imoveis=imoveis)
 
 
 # ============================================================================
@@ -1829,6 +1872,390 @@ def relatorio_imoveis_desocupados_excel():
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     nome_arquivo = f'imoveis_desocupados_{timestamp}.xlsx'
+
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=nome_arquivo
+    )
+
+
+@app.route('/relatorios/cobrancas-mes/excel')
+@login_required
+def relatorio_cobrancas_mes_excel():
+    """Exporta relatório de cobranças do mês para Excel.
+
+    Mostra todos os imóveis ocupados (contratos ativos ou prorrogados) com:
+    - Endereço do imóvel
+    - Nome do inquilino
+    - Telefone do inquilino
+    - Valor do aluguel
+    - IPTU (mensal, se aplicável)
+    - Condomínio
+    - Data de vencimento
+    - Nome do proprietário
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    import calendar
+
+    hoje = date.today()
+    ano_atual = hoje.year
+    mes_atual = hoje.month
+
+    # Buscar contratos ativos ou prorrogados com dados do imóvel e inquilino
+    query = """
+        SELECT
+            c.id as contrato_id,
+            c.valor_aluguel,
+            c.dia_vencimento,
+            i.endereco_completo,
+            i.proprietario,
+            i.condominio_sugerido,
+            i.valor_iptu_anual,
+            i.forma_pagamento_iptu,
+            p.nome_completo as inquilino_nome,
+            p.telefone as inquilino_telefone
+        FROM contratos c
+        JOIN imoveis i ON c.id_imovel = i.id
+        JOIN pessoas p ON c.id_inquilino = p.id
+        WHERE c.status_contrato IN ('Ativo', 'Prorrogado')
+        ORDER BY c.dia_vencimento ASC, i.endereco_completo ASC
+    """
+
+    cobrancas = db.execute_query(query)
+
+    if not cobrancas:
+        flash('Nenhum contrato ativo ou prorrogado encontrado.', 'warning')
+        return redirect(url_for('listar_relatorios'))
+
+    # Criar Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Cobranças do Mês"
+
+    # Estilos
+    header_fill = PatternFill(start_color="2E7D32", end_color="2E7D32", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+
+    # Nome do mês
+    meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+             'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+    nome_mes = meses[mes_atual]
+
+    # Título
+    ws.merge_cells('A1:H1')
+    ws['A1'] = f"COBRANÇAS DO MÊS - {nome_mes}/{ano_atual}"
+    ws['A1'].font = Font(bold=True, size=14)
+    ws['A1'].alignment = Alignment(horizontal="center")
+
+    # Subtítulo
+    ws.merge_cells('A2:H2')
+    ws['A2'] = f"Gerado em {hoje.strftime('%d/%m/%Y')}"
+    ws['A2'].font = Font(size=10, italic=True)
+    ws['A2'].alignment = Alignment(horizontal="center")
+
+    # Cabeçalhos
+    headers = ['Endereço', 'Inquilino', 'Telefone', 'Aluguel', 'IPTU', 'Condomínio', 'Vencimento', 'Proprietário']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=4, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_align
+        cell.border = border
+
+    # Dados
+    total_aluguel = 0
+    total_iptu = 0
+    total_condominio = 0
+
+    for row_num, cob in enumerate(cobrancas, 5):
+        aluguel = cob.get('valor_aluguel', 0) or 0
+        condominio = cob.get('condominio_sugerido', 0) or 0
+
+        # Calcular IPTU mensal se forma de pagamento for mensal
+        iptu = 0
+        if cob.get('forma_pagamento_iptu') == 'Mensal' and cob.get('valor_iptu_anual'):
+            iptu = round(cob['valor_iptu_anual'] / 12, 2)
+
+        # Calcular data de vencimento do mês atual
+        dia_venc = cob.get('dia_vencimento') or 10
+        ultimo_dia = calendar.monthrange(ano_atual, mes_atual)[1]
+        dia_venc = min(dia_venc, ultimo_dia)
+        data_vencimento = f"{dia_venc:02d}/{mes_atual:02d}/{ano_atual}"
+
+        total_aluguel += aluguel
+        total_iptu += iptu
+        total_condominio += condominio
+
+        dados = [
+            cob.get('endereco_completo', ''),
+            cob.get('inquilino_nome', ''),
+            cob.get('inquilino_telefone', '') or '-',
+            aluguel,
+            iptu,
+            condominio,
+            data_vencimento,
+            cob.get('proprietario', '') or '-'
+        ]
+
+        for col, valor_celula in enumerate(dados, 1):
+            cell = ws.cell(row=row_num, column=col, value=valor_celula)
+            cell.border = border
+            if col in [4, 5, 6]:  # Valores monetários
+                cell.number_format = 'R$ #,##0.00'
+            if col == 7:  # Vencimento - centralizar
+                cell.alignment = Alignment(horizontal="center")
+
+    # Linha de totais
+    row_total = len(cobrancas) + 5
+    ws.cell(row=row_total, column=3, value="TOTAIS:").font = Font(bold=True)
+
+    total_aluguel_cell = ws.cell(row=row_total, column=4, value=total_aluguel)
+    total_aluguel_cell.font = Font(bold=True)
+    total_aluguel_cell.number_format = 'R$ #,##0.00'
+    total_aluguel_cell.border = border
+
+    total_iptu_cell = ws.cell(row=row_total, column=5, value=total_iptu)
+    total_iptu_cell.font = Font(bold=True)
+    total_iptu_cell.number_format = 'R$ #,##0.00'
+    total_iptu_cell.border = border
+
+    total_condominio_cell = ws.cell(row=row_total, column=6, value=total_condominio)
+    total_condominio_cell.font = Font(bold=True)
+    total_condominio_cell.number_format = 'R$ #,##0.00'
+    total_condominio_cell.border = border
+
+    # Total geral
+    row_total_geral = row_total + 1
+    ws.cell(row=row_total_geral, column=3, value="TOTAL GERAL:").font = Font(bold=True, size=12)
+    total_geral = total_aluguel + total_iptu + total_condominio
+    total_geral_cell = ws.cell(row=row_total_geral, column=4, value=total_geral)
+    total_geral_cell.font = Font(bold=True, size=12)
+    total_geral_cell.number_format = 'R$ #,##0.00'
+
+    # Ajustar largura das colunas
+    ws.column_dimensions['A'].width = 40
+    ws.column_dimensions['B'].width = 30
+    ws.column_dimensions['C'].width = 18
+    ws.column_dimensions['D'].width = 15
+    ws.column_dimensions['E'].width = 12
+    ws.column_dimensions['F'].width = 15
+    ws.column_dimensions['G'].width = 14
+    ws.column_dimensions['H'].width = 15
+
+    # Salvar em memória
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    nome_arquivo = f'cobrancas_{mes_atual:02d}_{ano_atual}_{timestamp}.xlsx'
+
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=nome_arquivo
+    )
+
+
+@app.route('/relatorios/contratos/excel')
+@login_required
+def relatorio_contratos_excel():
+    """Exporta relatório de contratos para Excel.
+
+    Mostra todos os contratos com:
+    - Endereço do imóvel
+    - Proprietário
+    - Inquilino
+    - Garantia
+    - Início do contrato
+    - Término do contrato
+    - Valor do aluguel
+    - Dia de vencimento
+    - Data base de reajuste
+    - Observações
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+    hoje = date.today()
+
+    # Filtro de status (opcional via query string)
+    filtro_status = request.args.get('status', '')
+
+    # Buscar contratos com dados do imóvel e inquilino
+    query = """
+        SELECT
+            c.id as contrato_id,
+            c.garantia,
+            c.inicio_contrato,
+            c.fim_contrato,
+            c.valor_aluguel,
+            c.dia_vencimento,
+            c.status_contrato,
+            c.indice_reajuste,
+            c.data_base_reajuste,
+            c.observacoes,
+            i.endereco_completo,
+            i.proprietario,
+            p.nome_completo as inquilino_nome
+        FROM contratos c
+        JOIN imoveis i ON c.id_imovel = i.id
+        JOIN pessoas p ON c.id_inquilino = p.id
+    """
+    params = []
+
+    if filtro_status:
+        query += " WHERE c.status_contrato = ?"
+        params.append(filtro_status)
+
+    query += " ORDER BY c.status_contrato, i.endereco_completo ASC"
+
+    contratos = db.execute_query(query, tuple(params))
+
+    if not contratos:
+        flash('Nenhum contrato encontrado.', 'warning')
+        return redirect(url_for('listar_relatorios'))
+
+    # Criar Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Contratos"
+
+    # Estilos
+    header_fill = PatternFill(start_color="1565C0", end_color="1565C0", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+
+    # Título
+    ws.merge_cells('A1:J1')
+    titulo = "RELATÓRIO DE CONTRATOS"
+    if filtro_status:
+        titulo += f" - {filtro_status.upper()}"
+    ws['A1'] = titulo
+    ws['A1'].font = Font(bold=True, size=14)
+    ws['A1'].alignment = Alignment(horizontal="center")
+
+    # Subtítulo
+    ws.merge_cells('A2:J2')
+    ws['A2'] = f"Gerado em {hoje.strftime('%d/%m/%Y')}"
+    ws['A2'].font = Font(size=10, italic=True)
+    ws['A2'].alignment = Alignment(horizontal="center")
+
+    # Cabeçalhos
+    headers = ['Endereço', 'Proprietário', 'Inquilino', 'Garantia', 'Início',
+               'Término', 'Aluguel', 'Dia Venc.', 'Data Base Reajuste', 'Observações']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=4, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_align
+        cell.border = border
+
+    # Dados
+    total_aluguel = 0
+
+    for row_num, contrato in enumerate(contratos, 5):
+        aluguel = contrato.get('valor_aluguel', 0) or 0
+        total_aluguel += aluguel
+
+        # Formatar datas
+        inicio = contrato.get('inicio_contrato', '')
+        if inicio:
+            try:
+                inicio = datetime.strptime(inicio, '%Y-%m-%d').strftime('%d/%m/%Y')
+            except:
+                pass
+
+        fim = contrato.get('fim_contrato', '')
+        if fim:
+            try:
+                fim = datetime.strptime(fim, '%Y-%m-%d').strftime('%d/%m/%Y')
+            except:
+                pass
+
+        data_base = contrato.get('data_base_reajuste', '')
+        if data_base:
+            try:
+                data_base = datetime.strptime(data_base, '%Y-%m-%d').strftime('%d/%m/%Y')
+            except:
+                pass
+
+        # Formatar garantia
+        garantia = contrato.get('garantia', '') or ''
+        garantia_formatada = garantia.capitalize() if garantia else '-'
+
+        dados = [
+            contrato.get('endereco_completo', ''),
+            contrato.get('proprietario', '') or '-',
+            contrato.get('inquilino_nome', ''),
+            garantia_formatada,
+            inicio or '-',
+            fim or 'Indeterminado',
+            aluguel,
+            contrato.get('dia_vencimento', '') or '-',
+            data_base or '-',
+            contrato.get('observacoes', '') or ''
+        ]
+
+        for col, valor_celula in enumerate(dados, 1):
+            cell = ws.cell(row=row_num, column=col, value=valor_celula)
+            cell.border = border
+            if col == 7:  # Valor do aluguel
+                cell.number_format = 'R$ #,##0.00'
+            if col in [5, 6, 8, 9]:  # Datas e dia - centralizar
+                cell.alignment = Alignment(horizontal="center")
+            if col == 10:  # Observações - quebra de linha
+                cell.alignment = Alignment(wrap_text=True, vertical="top")
+
+    # Linha de totais
+    row_total = len(contratos) + 5
+    ws.cell(row=row_total, column=6, value="TOTAL:").font = Font(bold=True)
+
+    total_aluguel_cell = ws.cell(row=row_total, column=7, value=total_aluguel)
+    total_aluguel_cell.font = Font(bold=True)
+    total_aluguel_cell.number_format = 'R$ #,##0.00'
+    total_aluguel_cell.border = border
+
+    # Resumo
+    row_resumo = row_total + 2
+    ws.cell(row=row_resumo, column=1, value=f"Total de contratos: {len(contratos)}").font = Font(bold=True)
+
+    # Ajustar largura das colunas
+    ws.column_dimensions['A'].width = 40
+    ws.column_dimensions['B'].width = 15
+    ws.column_dimensions['C'].width = 25
+    ws.column_dimensions['D'].width = 12
+    ws.column_dimensions['E'].width = 12
+    ws.column_dimensions['F'].width = 14
+    ws.column_dimensions['G'].width = 14
+    ws.column_dimensions['H'].width = 10
+    ws.column_dimensions['I'].width = 16
+    ws.column_dimensions['J'].width = 30
+
+    # Salvar em memória
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    nome_arquivo = f'contratos_{timestamp}.xlsx'
 
     return send_file(
         output,

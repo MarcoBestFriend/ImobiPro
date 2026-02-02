@@ -482,50 +482,50 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ url_for('listar_imoveis') }}" class="nav-link {% if 'imoveis' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('listar_imoveis') }}" class="nav-link {% if request.endpoint and 'imoveis' in request.endpoint %}active{% endif %}">
                             <span class="nav-icon">🏘️</span>
                             Imóveis
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ url_for('listar_pessoas') }}" class="nav-link {% if 'pessoas' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('listar_pessoas') }}" class="nav-link {% if request.endpoint and 'pessoas' in request.endpoint %}active{% endif %}">
                             <span class="nav-icon">👥</span>
                             Pessoas
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ url_for('listar_contratos') }}" class="nav-link {% if 'contratos' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('listar_contratos') }}" class="nav-link {% if request.endpoint and 'contratos' in request.endpoint %}active{% endif %}">
                             <span class="nav-icon">📋</span>
                             Contratos
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ url_for('listar_receitas') }}" class="nav-link {% if 'receitas' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('listar_receitas') }}" class="nav-link {% if request.endpoint and 'receitas' in request.endpoint %}active{% endif %}">
                             <span class="nav-icon">💰</span>
                             Receitas
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ url_for('listar_despesas') }}" class="nav-link {% if 'despesas' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('listar_despesas') }}" class="nav-link {% if request.endpoint and 'despesas' in request.endpoint %}active{% endif %}">
                             <span class="nav-icon">💸</span>
                             Despesas
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ url_for('listar_relatorios') }}" class="nav-link {% if 'relatorios' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('listar_relatorios') }}" class="nav-link {% if request.endpoint and 'relatorios' in request.endpoint %}active{% endif %}">
                             <span class="nav-icon">📊</span>
                             Relatórios
                         </a>
                     </li>
                     <li class="nav-item" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-                        <a href="{{ url_for('pagina_dados') }}" class="nav-link {% if 'dados' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('pagina_dados') }}" class="nav-link {% if request.endpoint and 'dados' in request.endpoint %}active{% endif %}">
                             <span class="nav-icon">📦</span>
                             Dados
                         </a>
                     </li>
                     {% if current_user.is_authenticated and current_user.is_admin() %}
                     <li class="nav-item">
-                        <a href="{{ url_for('listar_usuarios') }}" class="nav-link {% if 'usuario' in request.endpoint %}active{% endif %}">
+                        <a href="{{ url_for('listar_usuarios') }}" class="nav-link {% if request.endpoint and 'usuario' in request.endpoint %}active{% endif %}">
                             <span class="nav-icon">👤</span>
                             Usuarios
                         </a>

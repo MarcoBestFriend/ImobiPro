@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Atualizar Condomínios - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>🏢 Atualizar Valores de Condomínio</h2>
+            <p>Atualize os valores mensais de condomínio dos imóveis</p>
+        </div>
+        <a href="{{ url_for('listar_imoveis') }}" class="btn btn-secondary">
+            ← Voltar para Imóveis
+        </a>
+    </div>
+</div>
+
+{% if imoveis %}
+<form method="POST" action="{{ url_for('atualizar_condominios') }}">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Imóveis com Condomínio Cadastrado</h3>
+            <span class="badge badge-info">{{ imoveis|length }} imóveis</span>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50%;">Endereço</th>
+                        <th style="width: 15%; text-align: center;">Dia Venc.</th>
+                        <th style="width: 17%; text-align: right;">Valor Atual</th>
+                        <th style="width: 18%; text-align: right;">Novo Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for imovel in imoveis %}
+                    <tr>
+                        <td style="color: var(--text-primary); font-weight: 500;">
+                            {{ imovel.endereco_completo }}
+                        </td>
+                        <td style="text-align: center; color: var(--text-secondary);">
+                            {{ imovel.dia_venc_condominio or '10' }}
+                        </td>
+                        <td style="text-align: right; color: var(--info); font-weight: 600;">
+                            {{ imovel.condominio_sugerido|formatar_moeda }}
+                        </td>
+                        <td style="text-align: right;">
+                            <input type="text"
+                                   name="condominio_{{ imovel.id }}"
+                                   class="form-control"
+                                   style="text-align: right; width: 120px; display: inline-block;"
+                                   placeholder="{{ '%.2f'|format(imovel.condominio_sugerido) }}"
+                                   pattern="[0-9]+([,\.][0-9]+)?"
+                                   title="Digite o valor (ex: 450,00 ou 450.00)">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="padding: var(--spacing-md); border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <small style="color: var(--text-muted);">
+                Deixe em branco os campos que não deseja alterar.
+            </small>
+            <div style="display: flex; gap: var(--spacing-sm);">
+                <a href="{{ url_for('listar_imoveis') }}" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-success">
+                    Salvar Alterações
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+{% else %}
+<div class="card">
+    <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-muted);">
+        <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">🏢</div>
+        <h3 style="color: var(--text-secondary); margin-bottom: var(--spacing-sm);">
+            Nenhum imóvel com condomínio cadastrado
+        </h3>
+        <p style="margin-bottom: var(--spacing-md);">
+            Cadastre valores de condomínio nos imóveis para poder atualizá-los aqui.
+        </p>
+        <a href="{{ url_for('listar_imoveis') }}" class="btn btn-primary">
+            ← Voltar para Imóveis
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
