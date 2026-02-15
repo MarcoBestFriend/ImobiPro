@@ -3,7 +3,7 @@
 ## 📋 Informações Rápidas do Projeto
 
 - **Nome**: ImobiPro
-- **Versão**: 1.3.0 (Sistema de login + administração de usuários + backup automático)
+- **Versão**: 1.4.0 (Relatórios Excel + Atualização em lote de condomínios)
 - **Objetivo**: Sistema completo para gestão de imóveis, contratos, despesas e receitas de aluguéis
 - **Stack**: Python 3.10+, Flask, SQLite, Jinja2
 - **Ambiente**: Ubuntu 24.04, VSCode
@@ -67,6 +67,7 @@ ImobiPro/
 │   ├── imoveis/listar.html
 │   ├── imoveis/form.html           # Cadastro/edição de imóveis
 │   ├── imoveis/ver.html
+│   ├── imoveis/atualizar_condominios.html  # Atualização em lote
 │   ├── pessoas/listar.html
 │   ├── pessoas/form.html
 │   ├── contratos/listar.html
@@ -331,13 +332,15 @@ GET  /dashboard      → Dashboard com stats
 
 ### Imóveis
 ```
-GET  /imoveis                   → Lista
-GET  /imoveis/novo              → Form cadastro
-POST /imoveis/novo              → Processar
-GET  /imoveis/<id>              → Detalhes
-GET  /imoveis/<id>/editar       → Form editar
-POST /imoveis/<id>/editar       → Processar
-POST /imoveis/<id>/excluir      → Excluir (com confirmação)
+GET  /imoveis                       → Lista
+GET  /imoveis/novo                  → Form cadastro
+POST /imoveis/novo                  → Processar
+GET  /imoveis/<id>                  → Detalhes
+GET  /imoveis/<id>/editar           → Form editar
+POST /imoveis/<id>/editar           → Processar
+POST /imoveis/<id>/excluir          → Excluir (com confirmação)
+GET  /imoveis/atualizar-condominios → Form atualização em lote
+POST /imoveis/atualizar-condominios → Processar atualização
 ```
 
 ### Pessoas
@@ -395,9 +398,13 @@ POST /dados/executar-backup         → Criar backup na pasta backups/
 
 ### Relatórios
 ```
-GET  /relatorios                         → Página de relatórios
-GET  /relatorios/despesas-pendentes      → Relatório de despesas pendentes
-GET  /relatorios/despesas-pendentes/excel → Exportar para Excel
+GET  /relatorios                              → Página de relatórios
+GET  /relatorios/despesas-pendentes           → Relatório de despesas pendentes (HTML)
+GET  /relatorios/despesas-pendentes/excel     → Exportar despesas para Excel
+GET  /relatorios/imoveis-desocupados          → Relatório de imóveis desocupados (HTML)
+GET  /relatorios/imoveis-desocupados/excel    → Exportar imóveis desocupados para Excel
+GET  /relatorios/cobrancas-mes/excel          → Relatório de cobranças do mês (Excel)
+GET  /relatorios/contratos/excel              → Relatório de contratos (Excel)
 ```
 
 ---
@@ -434,22 +441,23 @@ GET  /relatorios/despesas-pendentes/excel → Exportar para Excel
 
 ---
 
-## ✅ Estado Atual (29/01/2026)
+## ✅ Estado Atual (02/02/2026)
 
 ### Dados Reais Importados
 - 29 imóveis (dados reais do arquivo imoveis2026.xlsx)
-- 0 pessoas (aguardando importação)
-- 0 contratos (aguardando importação)
+- Pessoas cadastradas conforme necessidade
+- Contratos cadastrados conforme necessidade
 
 ### Implementado
 - ✅ Dashboard
 - ✅ CRUD imóveis (listar, novo, editar, excluir, visualizar)
 - ✅ CRUD pessoas (listar, novo, editar, excluir)
 - ✅ CRUD contratos (listar, novo, editar, excluir) - atualiza status do imóvel automaticamente
-- ✅ CRUD despesas (listar, novo, editar, excluir, pagar)
+- ✅ CRUD despesas (listar, novo, editar, excluir, pagar) - **status "Atrasada" automático**
 - ✅ CRUD receitas (listar, novo, editar, excluir, receber)
 - ✅ **Lançamento automático IPTU anual** (data de vencimento customizada via modal)
 - ✅ **Lançamento automático Condomínio mensal** (vencimento conforme cadastro)
+- ✅ **Atualização em lote de condomínios** (botão na lista de imóveis)
 - ✅ Importação/Exportação de dados (ZIP com CSVs)
 - ✅ Migração Excel
 - ✅ Backup manual e download do banco
@@ -457,6 +465,10 @@ GET  /relatorios/despesas-pendentes/excel → Exportar para Excel
 - ✅ **Sistema de login** com usuários no banco de dados
 - ✅ **Administração de usuários** (criar, editar, excluir, ativar/desativar)
 - ✅ **Relatório de Despesas Pendentes** com exportação Excel
+- ✅ **Relatório de Imóveis Desocupados** com exportação Excel
+- ✅ **Relatório de Cobranças do Mês** (Excel direto)
+- ✅ **Relatório de Contratos** (Excel direto)
+- ✅ **Botões de cadastro rápido** de inquilino/fiador no formulário de contratos
 
 ### Planejado (NÃO FAZER SEM PERMISSÃO)
 - ⏳ Lançamento automático de receitas/aluguéis do mês
@@ -508,6 +520,38 @@ GET  /relatorios/despesas-pendentes/excel → Exportar para Excel
 - **Proteção**: Não cria duplicatas (verifica se já existe condomínio para o mês)
 - **Tipo despesa**: "Condomínio"
 - **Descrição**: "Condomínio {mês}/{ano}"
+
+### Atualizar Condomínios em Lote
+- **Rota**: `GET/POST /imoveis/atualizar-condominios`
+- **O que faz**: Exibe todos os imóveis com condomínio > 0 e permite atualizar os valores de uma vez
+- **Campos em branco**: Não são alterados
+- **Aceita**: Valores com vírgula ou ponto decimal
+
+---
+
+## 📊 Relatórios Excel
+
+### Relatório de Cobranças do Mês
+- **Rota**: `GET /relatorios/cobrancas-mes/excel`
+- **Colunas**: Endereço, Inquilino, Telefone, Aluguel, IPTU, Condomínio, Vencimento, Proprietário
+- **Filtro**: Contratos Ativos ou Prorrogados
+- **IPTU**: Calculado automaticamente (anual ÷ 12) quando forma de pagamento = "Mensal"
+
+### Relatório de Contratos
+- **Rota**: `GET /relatorios/contratos/excel`
+- **Colunas**: Endereço, Proprietário, Inquilino, Garantia, Início, Término, Aluguel, Dia Venc., Data Base Reajuste, Observações
+- **Filtro opcional**: `?status=Ativo` (ou Prorrogado, Encerrado, Rescindido)
+- **Ordenação**: Por status e endereço
+
+### Relatório de Despesas Pendentes
+- **Rota**: `GET /relatorios/despesas-pendentes/excel`
+- **Colunas**: ID, Imóvel, Tipo, Descrição, Vencimento, Valor, Situação
+- **Filtros**: Tipo, Vencimento até, Situação (vencidas/a vencer)
+
+### Relatório de Imóveis Desocupados
+- **Rota**: `GET /relatorios/imoveis-desocupados/excel`
+- **Colunas**: ID, Endereço, Proprietário, Tipo/Descrição, Aluguel Pretendido, Valor de Mercado
+- **Filtro opcional**: Proprietário
 
 ---
 
