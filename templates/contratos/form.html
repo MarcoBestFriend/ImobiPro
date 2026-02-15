@@ -21,9 +21,9 @@
                 <select name="id_imovel" class="form-control" required onchange="preencherValores(this)">
                     <option value="">-- Selecione um imóvel --</option>
                     {% for imovel in imoveis_disponiveis %}
-                    <option value="{{ imovel.id }}" 
+                    <option value="{{ imovel.id }}"
                             data-aluguel="{{ imovel.aluguel_pretendido }}"
-                            data-condominio="{{ imovel.condominio_sugerido or 0 }}"
+                            data-condominio="{{ imovel.condominio_inquilino or 0 }}"
                             data-iptu="{{ imovel.valor_iptu_anual or 0 }}"
                             data-forma-iptu="{{ imovel.forma_pagamento_iptu }}"
                             data-dia-venc="{{ imovel.dia_venc_condominio or 10 }}"

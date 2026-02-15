@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Receita #{{ receita.id }} - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>💰 Receita #{{ receita.id }}</h2>
+            <p>Detalhes completos da receita</p>
+        </div>
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('listar_receitas') }}" class="btn btn-secondary">← Voltar</a>
+            <a href="{{ url_for('editar_receita', id=receita.id) }}" class="btn btn-primary">✏️ Editar</a>
+        </div>
+    </div>
+</div>
+
+<!-- Status e resumo -->
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+    <div class="stat-card">
+        <div class="stat-label">Status</div>
+        <div>
+            <span class="badge badge-{{ receita.status|status_badge }}" style="font-size: 1.1rem;">
+                {{ receita.status }}
+            </span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Mês Referência</div>
+        <div class="stat-value" style="font-size: 1.3rem; color: var(--info);">
+            {{ receita.mes_referencia|formatar_data }}
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Vencimento</div>
+        <div class="stat-value" style="font-size: 1.3rem; color: var(--warning);">
+            {{ receita.vencimento_previsto|formatar_data }}
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Valor Total Devido</div>
+        <div class="stat-value" style="color: var(--success);">
+            {{ receita.valor_total_devido|formatar_moeda }}
+        </div>
+    </div>
+</div>
+
+<!-- Valores detalhados + Imóvel/Inquilino -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+    <!-- Composição dos valores -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📊 Composição do Valor</h3>
+        </div>
+        <div style="display: grid; gap: var(--spacing-md);">
+            <!-- Aluguel -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-sm); background: var(--bg-tertiary); border-radius: var(--radius-sm);">
+                <div>
+                    <div style="color: var(--text-muted); font-size: 0.875rem;">Aluguel</div>
+                </div>
+                <div style="color: var(--success); font-weight: 700; font-size: 1.25rem;">
+                    {{ receita.aluguel_devido|formatar_moeda }}
+                </div>
+            </div>
+
+            <!-- Condomínio -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-sm); background: var(--bg-tertiary); border-radius: var(--radius-sm);">
+                <div>
+                    <div style="color: var(--text-muted); font-size: 0.875rem;">Condomínio</div>
+                    <div style="color: var(--text-muted); font-size: 0.75rem;">Despesas ordinárias (inquilino)</div>
+                </div>
+                <div style="color: var(--info); font-weight: 700; font-size: 1.25rem;">
+                    {{ receita.condominio_devido|formatar_moeda if receita.condominio_devido else 'R$ 0,00' }}
+                </div>
+            </div>
+
+            <!-- IPTU -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-sm); background: var(--bg-tertiary); border-radius: var(--radius-sm);">
+                <div>
+                    <div style="color: var(--text-muted); font-size: 0.875rem;">IPTU</div>
+                    <div style="color: var(--text-muted); font-size: 0.75rem;">Valor mensal</div>
+                </div>
+                <div style="color: var(--warning); font-weight: 700; font-size: 1.25rem;">
+                    {{ receita.iptu_devido|formatar_moeda if receita.iptu_devido else 'R$ 0,00' }}
+                </div>
+            </div>
+
+            <!-- Desconto/Multa -->
+            {% if receita.desconto_multa %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-sm); background: var(--bg-tertiary); border-radius: var(--radius-sm);">
+                <div>
+                    <div style="color: var(--text-muted); font-size: 0.875rem;">
+                        {% if receita.desconto_multa < 0 %}Desconto{% else %}Multa/Juros{% endif %}
+                    </div>
+                </div>
+                <div style="color: {{ 'var(--danger)' if receita.desconto_multa > 0 else 'var(--success)' }}; font-weight: 700; font-size: 1.25rem;">
+                    {{ receita.desconto_multa|formatar_moeda }}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Linha divisória -->
+            <div style="border-top: 2px solid var(--border-color); padding-top: var(--spacing-sm); display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">
+                    TOTAL DEVIDO
+                </div>
+                <div style="color: var(--success); font-weight: 700; font-size: 1.5rem;">
+                    {{ receita.valor_total_devido|formatar_moeda }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Imóvel e Inquilino -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🏠 Imóvel e Inquilino</h3>
+        </div>
+        <div style="display: grid; gap: var(--spacing-md);">
+            {% if imovel %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Imóvel
+                </label>
+                <div style="color: var(--text-primary); font-weight: 600;">
+                    {{ imovel.endereco_completo }}
+                </div>
+                {% if imovel.proprietario %}
+                <div style="color: var(--text-muted); font-size: 0.875rem;">
+                    Proprietário: {{ imovel.proprietario }}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if inquilino %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Inquilino
+                </label>
+                <div style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem;">
+                    {{ inquilino.nome_completo }}
+                </div>
+                {% if inquilino.telefone %}
+                <div style="margin-top: 0.25rem;">
+                    <a href="tel:{{ inquilino.telefone }}" style="color: var(--accent);">{{ inquilino.telefone }}</a>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if contrato %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Contrato
+                </label>
+                <div style="color: var(--text-primary);">
+                    #{{ contrato.id }} -
+                    <span class="badge badge-{{ contrato.status_contrato|status_badge }}">
+                        {{ contrato.status_contrato }}
+                    </span>
+                </div>
+                <div style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
+                    Aluguel: {{ contrato.valor_aluguel|formatar_moeda }} | Dia venc.: {{ contrato.dia_vencimento }}
+                </div>
+            </div>
+
+            <div style="display: flex; gap: var(--spacing-sm);">
+                <a href="{{ url_for('ver_contrato', id=contrato.id) }}" class="btn btn-secondary" style="font-size: 0.875rem;">
+                    Ver Contrato →
+                </a>
+                {% if imovel %}
+                <a href="{{ url_for('ver_imovel', id=imovel.id) }}" class="btn btn-secondary" style="font-size: 0.875rem;">
+                    Ver Imóvel →
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Recebimento -->
+<div class="card" style="margin-bottom: var(--spacing-md);">
+    <div class="card-header">
+        <h3 class="card-title">💳 Recebimento</h3>
+        <span class="badge badge-{{ receita.status|status_badge }}">{{ receita.status }}</span>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--spacing-md);">
+        <div>
+            <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                Valor Recebido
+            </label>
+            {% if receita.valor_recebido %}
+            <div style="color: var(--success); font-weight: 700; font-size: 1.5rem;">
+                {{ receita.valor_recebido|formatar_moeda }}
+            </div>
+            {% else %}
+            <div style="color: var(--text-muted); font-size: 1.25rem;">
+                Não recebido
+            </div>
+            {% endif %}
+        </div>
+        <div>
+            <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                Data de Recebimento
+            </label>
+            {% if receita.data_recebimento %}
+            <div style="color: var(--text-primary); font-weight: 600; font-size: 1.25rem;">
+                {{ receita.data_recebimento|formatar_data }}
+            </div>
+            {% else %}
+            <div style="color: var(--text-muted); font-size: 1.25rem;">
+                -
+            </div>
+            {% endif %}
+        </div>
+        <div>
+            <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                Diferença
+            </label>
+            {% if receita.valor_recebido %}
+                {% set diferenca = receita.valor_recebido - receita.valor_total_devido %}
+                <div style="color: {{ 'var(--success)' if diferenca >= 0 else 'var(--danger)' }}; font-weight: 600; font-size: 1.25rem;">
+                    {% if diferenca == 0 %}
+                        Valor exato
+                    {% elif diferenca > 0 %}
+                        +{{ diferenca|formatar_moeda }}
+                    {% else %}
+                        {{ diferenca|formatar_moeda }}
+                    {% endif %}
+                </div>
+            {% else %}
+                <div style="color: var(--text-muted); font-size: 1.25rem;">-</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Observações -->
+{% if receita.observacoes %}
+<div class="card" style="margin-bottom: var(--spacing-md);">
+    <div class="card-header">
+        <h3 class="card-title">📝 Observações</h3>
+    </div>
+    <div style="white-space: pre-wrap; color: var(--text-primary); background: var(--bg-tertiary); padding: var(--spacing-md); border-radius: var(--radius-sm);">
+        {{ receita.observacoes }}
+    </div>
+</div>
+{% endif %}
+
+<!-- Informações de controle -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; color: var(--text-muted); font-size: 0.875rem;">
+        <span>📅 Cadastrado em: {{ receita.data_cadastro|formatar_data if receita.data_cadastro else '-' }}</span>
+    </div>
+</div>
+
+{% endblock %}

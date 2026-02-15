@@ -11,27 +11,51 @@
 <!-- Estatísticas principais -->
 <div class="stats-grid">
     <div class="stat-card">
-        <div class="stat-label">Total de Imóveis</div>
-        <div class="stat-value">{{ stats.total_imoveis }}</div>
-        <div class="stat-description">Imóveis cadastrados</div>
-    </div>
-    
-    <div class="stat-card">
-        <div class="stat-label">Imóveis Ocupados</div>
-        <div class="stat-value" style="color: var(--success);">{{ stats.imoveis_ocupados }}</div>
-        <div class="stat-description">Com contratos ativos</div>
-    </div>
-    
-    <div class="stat-card">
         <div class="stat-label">Imóveis Disponíveis</div>
         <div class="stat-value" style="color: var(--warning);">{{ stats.imoveis_disponiveis }}</div>
-        <div class="stat-description">Prontos para locação</div>
+        <div class="stat-description">De {{ stats.total_imoveis }} imóveis cadastrados</div>
     </div>
-    
+
+    <div class="stat-card" {% if total_despesas_vencidas > 0 %}style="border: 2px solid var(--danger); background: rgba(220, 53, 69, 0.1);"{% endif %}>
+        <div class="stat-label">Despesas Vencidas</div>
+        <div class="stat-value" style="color: var(--danger);">{{ total_despesas_vencidas }}</div>
+        <div class="stat-description">
+            {% if total_despesas_vencidas > 0 %}
+                Atenção! Despesas em atraso
+            {% else %}
+                Nenhuma despesa vencida
+            {% endif %}
+        </div>
+    </div>
+
     <div class="stat-card">
-        <div class="stat-label">Taxa de Ocupação</div>
-        <div class="stat-value" style="color: var(--info);">{{ "%.1f"|format(stats.taxa_ocupacao) }}%</div>
-        <div class="stat-description">Percentual ocupado</div>
+        <div class="stat-label">Próxima Despesa</div>
+        {% if proxima_despesa %}
+            <div class="stat-value" style="color: var(--warning); font-size: 1.5rem;">
+                {{ proxima_despesa.vencimento_previsto|formatar_data }}
+            </div>
+            <div class="stat-description">
+                {{ proxima_despesa.tipo_despesa }} - {{ proxima_despesa.valor_previsto|formatar_moeda }}
+            </div>
+        {% else %}
+            <div class="stat-value" style="color: var(--success);">-</div>
+            <div class="stat-description">Nenhuma despesa pendente</div>
+        {% endif %}
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Próx. Venc. Contrato</div>
+        {% if proximo_venc_contrato %}
+            <div class="stat-value" style="color: var(--info); font-size: 1.5rem;">
+                {{ proximo_venc_contrato.fim_contrato|formatar_data }}
+            </div>
+            <div class="stat-description">
+                {{ proximo_venc_contrato.inquilino_nome[:20] }}...
+            </div>
+        {% else %}
+            <div class="stat-value" style="color: var(--success);">-</div>
+            <div class="stat-description">Nenhum contrato a vencer</div>
+        {% endif %}
     </div>
 </div>
 

@@ -30,8 +30,9 @@ CREATE TABLE IF NOT EXISTS imoveis (
     valor_iptu_anual REAL,                     -- ValorIPTUAnual
     forma_pagamento_iptu TEXT DEFAULT 'Anual', -- FormaPagamentoIPTU (Anual/Mensal)
     aluguel_pretendido REAL,                   -- AluguelPretendido
-    condominio_sugerido REAL,                  -- CondominioSugerido
-    dia_venc_condominio INTEGER,               -- DiaVencCondominio
+    condominio_inquilino REAL,                 -- Condomínio pago pelo inquilino (despesas ordinárias)
+    condominio_total REAL,                     -- Condomínio total (ordinárias + extraordinárias)
+    dia_venc_condominio INTEGER,               -- DiaVencCondominio (para pagamento do total)
     valor_mercado REAL,                        -- Valor de mercado do imóvel
     data_aquisicao DATE,                       -- Data de aquisição
 
@@ -300,12 +301,12 @@ BEGIN
     );
 END;
 
--- Trigger: Calcular valor_total_devido em receitas
+-- Trigger: Calcular valor_total_devido em receitas (usa COALESCE para tratar NULL)
 CREATE TRIGGER IF NOT EXISTS calcular_total_receita_insert
 BEFORE INSERT ON receitas
 BEGIN
     UPDATE receitas
-    SET valor_total_devido = NEW.aluguel_devido + NEW.condominio_devido + NEW.iptu_devido + NEW.desconto_multa
+    SET valor_total_devido = COALESCE(NEW.aluguel_devido, 0) + COALESCE(NEW.condominio_devido, 0) + COALESCE(NEW.iptu_devido, 0) + COALESCE(NEW.desconto_multa, 0)
     WHERE id = NEW.id;
 END;
 
@@ -313,7 +314,7 @@ CREATE TRIGGER IF NOT EXISTS calcular_total_receita_update
 BEFORE UPDATE ON receitas
 BEGIN
     UPDATE receitas
-    SET valor_total_devido = NEW.aluguel_devido + NEW.condominio_devido + NEW.iptu_devido + NEW.desconto_multa
+    SET valor_total_devido = COALESCE(NEW.aluguel_devido, 0) + COALESCE(NEW.condominio_devido, 0) + COALESCE(NEW.iptu_devido, 0) + COALESCE(NEW.desconto_multa, 0)
     WHERE id = NEW.id;
 END;
 
@@ -405,7 +406,7 @@ JOIN contratos c ON r.id_contrato = c.id
 JOIN imoveis i ON c.id_imovel = i.id
 JOIN pessoas p ON c.id_inquilino = p.id
 WHERE r.status IN ('Pendente', 'Atrasado')
-ORDER BY r.vencimento_previsto;
+ORDER BY r.vencimento_previsto DESC;
 
 -- ============================================================================
 -- TABELA: usuarios

@@ -161,13 +161,26 @@
                                 </div>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label for="condominio_sugerido" class="form-label">Condomínio</label>
+                                <label for="condominio_inquilino" class="form-label">Condomínio Inquilino</label>
                                 <div class="input-group">
                                     <span class="input-group-text">R$</span>
-                                    <input type="number" class="form-control" id="condominio_sugerido" name="condominio_sugerido"
+                                    <input type="number" class="form-control" id="condominio_inquilino" name="condominio_inquilino"
                                            step="0.01" min="0"
-                                           value="{{ imovel.condominio_sugerido if imovel and imovel.condominio_sugerido else '' }}">
+                                           value="{{ imovel.condominio_inquilino if imovel and imovel.condominio_inquilino else '' }}">
                                 </div>
+                                <small class="text-muted">Despesas ordinárias (valor cobrado do inquilino)</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="condominio_total" class="form-label">Condomínio Total</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="number" class="form-control" id="condominio_total" name="condominio_total"
+                                           step="0.01" min="0"
+                                           value="{{ imovel.condominio_total if imovel and imovel.condominio_total else '' }}">
+                                </div>
+                                <small class="text-muted">Ordinárias + extraordinárias (valor da despesa)</small>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label for="dia_venc_condominio" class="form-label">Dia Venc. Condomínio</label>

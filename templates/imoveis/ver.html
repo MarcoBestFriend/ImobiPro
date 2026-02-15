@@ -125,13 +125,27 @@
                 </div>
             </div>
             
-            {% if imovel.condominio_sugerido %}
+            {% if imovel.condominio_inquilino %}
             <div>
                 <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
-                    Condomínio Sugerido
+                    Condomínio Inquilino
                 </label>
                 <div style="color: var(--text-primary); font-weight: 600;">
-                    {{ imovel.condominio_sugerido|formatar_moeda }}
+                    {{ imovel.condominio_inquilino|formatar_moeda }}
+                    <span style="color: var(--text-muted); font-size: 0.875rem;">
+                        (despesas ordinárias)
+                    </span>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if imovel.condominio_total %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Condomínio Total
+                </label>
+                <div style="color: var(--text-primary); font-weight: 600;">
+                    {{ imovel.condominio_total|formatar_moeda }}
                     <span style="color: var(--text-muted); font-size: 0.875rem;">
                         (Venc. dia {{ imovel.dia_venc_condominio }})
                     </span>

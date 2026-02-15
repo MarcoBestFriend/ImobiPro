@@ -150,6 +150,9 @@
                                     </button>
                                 </form>
                                 {% endif %}
+                                <a href="{{ url_for('ver_receita', id=receita.id) }}" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                                    👁️ Ver
+                                </a>
                                 <a href="{{ url_for('editar_receita', id=receita.id) }}" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
                                     ✏️ Editar
                                 </a>

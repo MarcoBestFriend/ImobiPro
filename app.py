@@ -452,25 +452,66 @@ def dashboard():
     """Dashboard principal com estatísticas e resumos."""
     # Buscar estatísticas
     stats = db.get_estatisticas_dashboard()
-    
+
     # Buscar contratos ativos
     contratos_ativos = db.get_contratos_ativos()
-    
+
     # Buscar despesas pendentes (próximas a vencer)
     despesas_pendentes = db.get_despesas_pendentes()
-    
+
     # Buscar receitas pendentes (próximas a vencer)
     receitas_pendentes = db.get_receitas_pendentes()
-    
+
     # Imóveis disponíveis
     imoveis_disponiveis = db.get_imoveis_disponiveis()
-    
+
+    # Contar despesas vencidas (atrasadas)
+    despesas_vencidas = db.execute_query("""
+        SELECT COUNT(*) as total
+        FROM despesas
+        WHERE data_pagamento IS NULL
+          AND vencimento_previsto < DATE('now')
+    """)
+    total_despesas_vencidas = despesas_vencidas[0]['total'] if despesas_vencidas else 0
+
+    # Próxima despesa a vencer (não paga e vencimento >= hoje)
+    proxima_despesa = db.execute_query("""
+        SELECT d.vencimento_previsto, d.tipo_despesa, d.valor_previsto,
+               i.endereco_completo
+        FROM despesas d
+        JOIN imoveis i ON d.id_imovel = i.id
+        WHERE d.data_pagamento IS NULL
+          AND d.vencimento_previsto >= DATE('now')
+        ORDER BY d.vencimento_previsto ASC
+        LIMIT 1
+    """)
+    proxima_despesa_info = proxima_despesa[0] if proxima_despesa else None
+
+    # Próximo vencimento de contrato (fim_contrato mais próximo)
+    proximo_venc_contrato = db.execute_query("""
+        SELECT c.fim_contrato, c.valor_aluguel,
+               i.endereco_completo,
+               p.nome_completo as inquilino_nome
+        FROM contratos c
+        JOIN imoveis i ON c.id_imovel = i.id
+        JOIN pessoas p ON c.id_inquilino = p.id
+        WHERE c.status_contrato IN ('Ativo', 'Prorrogado')
+          AND c.fim_contrato IS NOT NULL
+          AND c.fim_contrato >= DATE('now')
+        ORDER BY c.fim_contrato ASC
+        LIMIT 1
+    """)
+    proximo_venc_contrato_info = proximo_venc_contrato[0] if proximo_venc_contrato else None
+
     return render_template('dashboard.html',
                          stats=stats,
                          contratos_ativos=contratos_ativos[:5],  # Últimos 5
                          despesas_pendentes=despesas_pendentes[:5],
                          receitas_pendentes=receitas_pendentes[:5],
-                         imoveis_disponiveis=imoveis_disponiveis[:5])
+                         imoveis_disponiveis=imoveis_disponiveis[:5],
+                         total_despesas_vencidas=total_despesas_vencidas,
+                         proxima_despesa=proxima_despesa_info,
+                         proximo_venc_contrato=proximo_venc_contrato_info)
 
 
 # ============================================================================
@@ -512,7 +553,8 @@ def novo_imovel():
                 'valor_iptu_anual': request.form.get('valor_iptu_anual') or None,
                 'forma_pagamento_iptu': request.form.get('forma_pagamento_iptu', 'Anual'),
                 'aluguel_pretendido': request.form.get('aluguel_pretendido') or None,
-                'condominio_sugerido': request.form.get('condominio_sugerido') or None,
+                'condominio_inquilino': request.form.get('condominio_inquilino') or None,
+                'condominio_total': request.form.get('condominio_total') or None,
                 'dia_venc_condominio': request.form.get('dia_venc_condominio') or None,
                 'valor_mercado': request.form.get('valor_mercado') or None,
                 'data_aquisicao': request.form.get('data_aquisicao') or None,
@@ -584,7 +626,8 @@ def editar_imovel(id):
                 'valor_iptu_anual': request.form.get('valor_iptu_anual') or None,
                 'forma_pagamento_iptu': request.form.get('forma_pagamento_iptu'),
                 'aluguel_pretendido': request.form.get('aluguel_pretendido') or None,
-                'condominio_sugerido': request.form.get('condominio_sugerido') or None,
+                'condominio_inquilino': request.form.get('condominio_inquilino') or None,
+                'condominio_total': request.form.get('condominio_total') or None,
                 'dia_venc_condominio': request.form.get('dia_venc_condominio') or None,
                 'valor_mercado': request.form.get('valor_mercado') or None,
                 'data_aquisicao': request.form.get('data_aquisicao') or None,
@@ -633,20 +676,34 @@ def atualizar_condominios():
     """Página para atualização em lote dos valores de condomínio."""
     if request.method == 'POST':
         try:
-            # Buscar todos os IDs enviados no formulário
-            atualizados = 0
+            # Dicionário para agrupar atualizações por imóvel
+            atualizacoes = {}
+
             for key, value in request.form.items():
-                if key.startswith('condominio_'):
-                    imovel_id = int(key.replace('condominio_', ''))
-                    novo_valor = value.strip()
+                novo_valor = value.strip()
+                if not novo_valor:
+                    continue
 
-                    if novo_valor:
-                        # Converter para float (aceita vírgula ou ponto)
-                        novo_valor = float(novo_valor.replace(',', '.'))
+                # Converter para float (aceita vírgula ou ponto)
+                novo_valor = float(novo_valor.replace(',', '.'))
 
-                        # Atualizar no banco
-                        if db.update('imoveis', {'condominio_sugerido': novo_valor}, 'id = ?', (imovel_id,)):
-                            atualizados += 1
+                if key.startswith('condominio_inquilino_'):
+                    imovel_id = int(key.replace('condominio_inquilino_', ''))
+                    if imovel_id not in atualizacoes:
+                        atualizacoes[imovel_id] = {}
+                    atualizacoes[imovel_id]['condominio_inquilino'] = novo_valor
+
+                elif key.startswith('condominio_total_'):
+                    imovel_id = int(key.replace('condominio_total_', ''))
+                    if imovel_id not in atualizacoes:
+                        atualizacoes[imovel_id] = {}
+                    atualizacoes[imovel_id]['condominio_total'] = novo_valor
+
+            # Aplicar as atualizações
+            atualizados = 0
+            for imovel_id, dados in atualizacoes.items():
+                if db.update('imoveis', dados, 'id = ?', (imovel_id,)):
+                    atualizados += 1
 
             if atualizados > 0:
                 flash(f'Valores atualizados com sucesso! {atualizados} imóvel(is) alterado(s).', 'success')
@@ -658,11 +715,12 @@ def atualizar_condominios():
         except Exception as e:
             flash(f'Erro ao atualizar: {str(e)}', 'danger')
 
-    # GET: Buscar imóveis com condomínio > 0
+    # GET: Buscar imóveis com condomínio cadastrado (inquilino ou total > 0)
     imoveis = db.execute_query("""
-        SELECT id, endereco_completo, condominio_sugerido, dia_venc_condominio
+        SELECT id, endereco_completo, condominio_inquilino, condominio_total, dia_venc_condominio
         FROM imoveis
-        WHERE condominio_sugerido IS NOT NULL AND condominio_sugerido > 0
+        WHERE (condominio_inquilino IS NOT NULL AND condominio_inquilino > 0)
+           OR (condominio_total IS NOT NULL AND condominio_total > 0)
         ORDER BY endereco_completo
     """)
 
@@ -730,6 +788,42 @@ def nova_pessoa():
     situacao_preselect = request.args.get('situacao', '')
 
     return render_template('pessoas/form.html', pessoa=None, config=app.config, situacao_preselect=situacao_preselect)
+
+
+@app.route('/pessoas/<int:id>')
+@login_required
+def ver_pessoa(id):
+    """Visualiza detalhes de uma pessoa."""
+    pessoa = db.get_by_id('pessoas', id)
+
+    if not pessoa:
+        flash('Pessoa não encontrada.', 'danger')
+        return redirect(url_for('listar_pessoas'))
+
+    # Buscar contratos onde a pessoa é inquilino
+    contratos_inquilino = db.execute_query("""
+        SELECT c.*, i.endereco_completo as imovel_endereco
+        FROM contratos c
+        JOIN imoveis i ON c.id_imovel = i.id
+        WHERE c.id_inquilino = ?
+        ORDER BY c.inicio_contrato DESC
+    """, (id,))
+
+    # Buscar contratos onde a pessoa é fiador
+    contratos_fiador = db.execute_query("""
+        SELECT c.*, i.endereco_completo as imovel_endereco,
+               p.nome_completo as inquilino_nome
+        FROM contratos c
+        JOIN imoveis i ON c.id_imovel = i.id
+        JOIN pessoas p ON c.id_inquilino = p.id
+        WHERE c.id_fiador = ?
+        ORDER BY c.inicio_contrato DESC
+    """, (id,))
+
+    return render_template('pessoas/ver.html',
+                         pessoa=pessoa,
+                         contratos_inquilino=contratos_inquilino,
+                         contratos_fiador=contratos_fiador)
 
 
 @app.route('/pessoas/<int:id>/editar', methods=['GET', 'POST'])
@@ -864,12 +958,42 @@ def novo_contrato():
     inquilinos = db.get_where('pessoas', "situacao IN ('Inquilino', 'Ambos')", (), 'nome_completo')
     fiadores = db.get_where('pessoas', "situacao IN ('Fiador', 'Ambos')", (), 'nome_completo')
     
-    return render_template('contratos/form.html', 
-                         contrato=None, 
+    return render_template('contratos/form.html',
+                         contrato=None,
                          imoveis_disponiveis=imoveis_disponiveis,
                          inquilinos=inquilinos,
                          fiadores=fiadores,
                          config=app.config)
+
+
+@app.route('/contratos/<int:id>')
+@login_required
+def ver_contrato(id):
+    """Visualiza detalhes de um contrato."""
+    contrato = db.get_by_id('contratos', id)
+
+    if not contrato:
+        flash('Contrato não encontrado.', 'danger')
+        return redirect(url_for('listar_contratos'))
+
+    # Buscar dados relacionados
+    imovel = db.get_by_id('imoveis', contrato['id_imovel'])
+    inquilino = db.get_by_id('pessoas', contrato['id_inquilino'])
+    fiador = db.get_by_id('pessoas', contrato['id_fiador']) if contrato['id_fiador'] else None
+
+    # Buscar receitas do contrato
+    receitas = db.execute_query("""
+        SELECT * FROM receitas
+        WHERE id_contrato = ?
+        ORDER BY mes_referencia DESC
+    """, (id,))
+
+    return render_template('contratos/ver.html',
+                         contrato=contrato,
+                         imovel=imovel,
+                         inquilino=inquilino,
+                         fiador=fiador,
+                         receitas=receitas)
 
 
 @app.route('/contratos/<int:id>/editar', methods=['GET', 'POST'])
@@ -877,7 +1001,7 @@ def novo_contrato():
 def editar_contrato(id):
     """Edita um contrato existente."""
     contrato = db.get_by_id('contratos', id)
-    
+
     if not contrato:
         flash('Contrato não encontrado.', 'danger')
         return redirect(url_for('listar_contratos'))
@@ -1109,15 +1233,16 @@ def gerar_iptu_anual():
         vencimento = data_vencimento
         mes_referencia = f"{ano_atual}-01-01"  # Janeiro do ano do vencimento
 
-        # Buscar imóveis com IPTU cadastrado
+        # Buscar imóveis com IPTU cadastrado e pagamento ANUAL
         imoveis = db.execute_query("""
             SELECT id, endereco_completo, valor_iptu_anual
             FROM imoveis
             WHERE valor_iptu_anual IS NOT NULL AND valor_iptu_anual > 0
+            AND forma_pagamento_iptu = 'Anual'
         """)
 
         if not imoveis:
-            flash('Nenhum imóvel com valor de IPTU cadastrado.', 'warning')
+            flash('Nenhum imóvel com IPTU anual cadastrado.', 'warning')
             return redirect(url_for('listar_despesas'))
 
         contador = 0
@@ -1161,6 +1286,78 @@ def gerar_iptu_anual():
     return redirect(url_for('listar_despesas'))
 
 
+@app.route('/despesas/gerar-iptu-mensal', methods=['POST'])
+@login_required
+def gerar_iptu_mensal():
+    """Gera despesas de IPTU mensal (valor anual ÷ 12) para imóveis com pagamento mensal."""
+    try:
+        import calendar
+        hoje = date.today()
+        ano_atual = hoje.year
+        mes_atual = hoje.month
+        mes_referencia = f"{ano_atual}-{mes_atual:02d}-01"
+
+        # Receber data de vencimento do formulário
+        data_vencimento = request.form.get('data_vencimento')
+        if not data_vencimento:
+            flash('Data de vencimento é obrigatória.', 'danger')
+            return redirect(url_for('listar_despesas'))
+
+        # Buscar imóveis com IPTU cadastrado e pagamento MENSAL
+        imoveis = db.execute_query("""
+            SELECT id, endereco_completo, valor_iptu_anual
+            FROM imoveis
+            WHERE valor_iptu_anual IS NOT NULL AND valor_iptu_anual > 0
+            AND forma_pagamento_iptu = 'Mensal'
+        """)
+
+        if not imoveis:
+            flash('Nenhum imóvel com IPTU mensal cadastrado.', 'warning')
+            return redirect(url_for('listar_despesas'))
+
+        contador = 0
+        ignorados = 0
+
+        for imovel in imoveis:
+            # Verificar se já existe IPTU para este imóvel neste mês
+            existente = db.execute_query("""
+                SELECT id FROM despesas
+                WHERE id_imovel = ? AND tipo_despesa = 'IPTU'
+                AND strftime('%Y-%m', mes_referencia) = ?
+            """, (imovel['id'], f"{ano_atual}-{mes_atual:02d}"))
+
+            if existente:
+                ignorados += 1
+                continue
+
+            # Valor mensal = anual ÷ 12
+            valor_mensal = round(imovel['valor_iptu_anual'] / 12, 2)
+
+            # Criar despesa de IPTU mensal
+            dados = {
+                'id_imovel': imovel['id'],
+                'tipo_despesa': 'IPTU',
+                'motivo_despesa': f'IPTU Mensal {mes_atual:02d}/{ano_atual}',
+                'mes_referencia': mes_referencia,
+                'valor_previsto': valor_mensal,
+                'vencimento_previsto': data_vencimento,
+            }
+
+            if db.insert('despesas', dados):
+                contador += 1
+
+        if contador > 0:
+            data_formatada = f"{data_vencimento[8:10]}/{data_vencimento[5:7]}/{data_vencimento[:4]}"
+            flash(f'IPTU mensal gerado para {contador} imóvel(is)! Vencimento: {data_formatada}', 'success')
+        if ignorados > 0:
+            flash(f'{ignorados} imóvel(is) já tinham IPTU lançado para {mes_atual:02d}/{ano_atual}.', 'info')
+
+    except Exception as e:
+        flash(f'Erro ao gerar IPTU mensal: {str(e)}', 'danger')
+
+    return redirect(url_for('listar_despesas'))
+
+
 @app.route('/despesas/gerar-condominio-mensal', methods=['POST'])
 @login_required
 def gerar_condominio_mensal():
@@ -1171,11 +1368,11 @@ def gerar_condominio_mensal():
         mes_atual = hoje.month
         mes_referencia = f"{ano_atual}-{mes_atual:02d}-01"
 
-        # Buscar imóveis com condomínio cadastrado
+        # Buscar imóveis com condomínio total cadastrado (para despesas)
         imoveis = db.execute_query("""
-            SELECT id, endereco_completo, condominio_sugerido, dia_venc_condominio
+            SELECT id, endereco_completo, condominio_total, dia_venc_condominio
             FROM imoveis
-            WHERE condominio_sugerido IS NOT NULL AND condominio_sugerido > 0
+            WHERE condominio_total IS NOT NULL AND condominio_total > 0
         """)
 
         if not imoveis:
@@ -1205,13 +1402,13 @@ def gerar_condominio_mensal():
             dia_venc = min(dia_venc, ultimo_dia)
             vencimento = f"{ano_atual}-{mes_atual:02d}-{dia_venc:02d}"
 
-            # Criar despesa de condomínio
+            # Criar despesa de condomínio (usa condominio_total)
             dados = {
                 'id_imovel': imovel['id'],
                 'tipo_despesa': 'Condomínio',
                 'motivo_despesa': f'Condomínio {mes_atual:02d}/{ano_atual}',
                 'mes_referencia': mes_referencia,
-                'valor_previsto': imovel['condominio_sugerido'],
+                'valor_previsto': imovel['condominio_total'],
                 'vencimento_previsto': vencimento,
             }
 
@@ -1274,7 +1471,7 @@ def gerar_faturamento_mensal():
         contratos = db.execute_query("""
             SELECT c.id, c.valor_aluguel, c.dia_vencimento,
                    i.endereco_completo as imovel_endereco,
-                   i.condominio_sugerido, i.valor_iptu_anual, i.forma_pagamento_iptu,
+                   i.condominio_inquilino, i.valor_iptu_anual, i.forma_pagamento_iptu,
                    p.nome_completo as inquilino_nome
             FROM contratos c
             JOIN imoveis i ON c.id_imovel = i.id
@@ -1307,9 +1504,9 @@ def gerar_faturamento_mensal():
             dia_venc = min(dia_venc, ultimo_dia)
             vencimento = f"{ano_atual}-{mes_atual:02d}-{dia_venc:02d}"
 
-            # Valores
+            # Valores (usa condominio_inquilino para receitas)
             aluguel = contrato['valor_aluguel'] or 0
-            condominio = contrato['condominio_sugerido'] or 0
+            condominio = contrato['condominio_inquilino'] or 0
 
             # IPTU mensal (se forma de pagamento for mensal)
             iptu = 0
@@ -1408,6 +1605,28 @@ def nova_receita():
     return render_template('receitas/form.html', receita=None, contratos=contratos, config=app.config)
 
 
+@app.route('/receitas/<int:id>')
+@login_required
+def ver_receita(id):
+    """Visualiza detalhes de uma receita."""
+    receita = db.get_by_id('receitas', id)
+
+    if not receita:
+        flash('Receita não encontrada.', 'danger')
+        return redirect(url_for('listar_receitas'))
+
+    # Buscar dados do contrato, imóvel e inquilino
+    contrato = db.get_by_id('contratos', receita['id_contrato'])
+    imovel = db.get_by_id('imoveis', contrato['id_imovel']) if contrato else None
+    inquilino = db.get_by_id('pessoas', contrato['id_inquilino']) if contrato else None
+
+    return render_template('receitas/ver.html',
+                         receita=receita,
+                         contrato=contrato,
+                         imovel=imovel,
+                         inquilino=inquilino)
+
+
 @app.route('/receitas/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
 def editar_receita(id):
@@ -1420,27 +1639,73 @@ def editar_receita(id):
 
     if request.method == 'POST':
         try:
+            # Função auxiliar para converter valores de forma segura
+            def safe_float(value, default=0):
+                if value is None or value == '' or value == 'None':
+                    return default
+                try:
+                    result = float(value)
+                    return result
+                except (ValueError, TypeError):
+                    return default
+
+            # Obter valores do formulário
+            form_aluguel = request.form.get('aluguel_devido')
+            form_condominio = request.form.get('condominio_devido')
+            form_iptu = request.form.get('iptu_devido')
+            form_desconto = request.form.get('desconto_multa')
+            form_total = request.form.get('valor_total_devido')
+
+            # Debug - mostrar no terminal
+            print(f"DEBUG editar_receita - Valores do form:")
+            print(f"  aluguel_devido: '{form_aluguel}'")
+            print(f"  condominio_devido: '{form_condominio}'")
+            print(f"  iptu_devido: '{form_iptu}'")
+            print(f"  desconto_multa: '{form_desconto}'")
+            print(f"  valor_total_devido (form): '{form_total}'")
+            print(f"  receita original aluguel: {receita['aluguel_devido']}")
+            print(f"  receita original total: {receita['valor_total_devido']}")
+
             # Calcular valor total
-            aluguel = float(request.form.get('aluguel_devido') or 0)
-            condominio = float(request.form.get('condominio_devido') or 0)
-            iptu = float(request.form.get('iptu_devido') or 0)
-            desconto_multa = float(request.form.get('desconto_multa') or 0)
+            aluguel = safe_float(form_aluguel, 0)
+            condominio = safe_float(form_condominio, 0)
+            iptu = safe_float(form_iptu, 0)
+            desconto_multa = safe_float(form_desconto, 0)
             valor_total = aluguel + condominio + iptu + desconto_multa
+
+            # Se o aluguel ficou zero mas tinha valor na receita original, usar original
+            if aluguel == 0 and receita['aluguel_devido']:
+                aluguel = float(receita['aluguel_devido'])
+                valor_total = aluguel + condominio + iptu + desconto_multa
+
+            # Se o total ficou zero, usar valor do formulário ou da receita original
+            if valor_total == 0:
+                valor_total = safe_float(form_total, 0)
+            if valor_total == 0 and receita['valor_total_devido']:
+                valor_total = float(receita['valor_total_devido'])
+
+            # Garantia final: nunca permitir None
+            if valor_total is None:
+                valor_total = 0.0
+
+            print(f"DEBUG - Valores calculados: aluguel={aluguel}, total={valor_total}")
 
             dados = {
                 'id_contrato': request.form.get('id_contrato'),
                 'mes_referencia': request.form.get('mes_referencia'),
-                'aluguel_devido': aluguel,
-                'condominio_devido': condominio or None,
-                'iptu_devido': iptu or None,
-                'desconto_multa': desconto_multa or None,
-                'valor_total_devido': valor_total,
+                'aluguel_devido': float(aluguel),
+                'condominio_devido': float(condominio),
+                'iptu_devido': float(iptu),
+                'desconto_multa': float(desconto_multa),
+                'valor_total_devido': float(valor_total),
                 'vencimento_previsto': request.form.get('vencimento_previsto'),
                 'data_recebimento': request.form.get('data_recebimento') or None,
-                'valor_recebido': request.form.get('valor_recebido') or None,
+                'valor_recebido': safe_float(request.form.get('valor_recebido'), None),
                 'status': request.form.get('status'),
                 'observacoes': request.form.get('observacoes'),
             }
+
+            print(f"DEBUG - valor_total_devido no dict: {dados['valor_total_devido']}")
 
             if db.update('receitas', dados, 'id = ?', (id,)):
                 flash('Receita atualizada com sucesso!', 'success')
@@ -1492,7 +1757,13 @@ def receber_receita(id):
             flash('Receita não encontrada.', 'danger')
             return redirect(url_for('listar_receitas'))
 
+        # Incluir todos os campos que o trigger precisa para evitar erro de NULL
         dados = {
+            'aluguel_devido': receita['aluguel_devido'] or 0,
+            'condominio_devido': receita['condominio_devido'] or 0,
+            'iptu_devido': receita['iptu_devido'] or 0,
+            'desconto_multa': receita['desconto_multa'] or 0,
+            'valor_total_devido': receita['valor_total_devido'],
             'valor_recebido': receita['valor_total_devido'],
             'data_recebimento': date.today().strftime('%Y-%m-%d'),
             'status': 'Recebido'
@@ -1915,7 +2186,7 @@ def relatorio_cobrancas_mes_excel():
             c.dia_vencimento,
             i.endereco_completo,
             i.proprietario,
-            i.condominio_sugerido,
+            i.condominio_inquilino,
             i.valor_iptu_anual,
             i.forma_pagamento_iptu,
             p.nome_completo as inquilino_nome,
@@ -1982,7 +2253,7 @@ def relatorio_cobrancas_mes_excel():
 
     for row_num, cob in enumerate(cobrancas, 5):
         aluguel = cob.get('valor_aluguel', 0) or 0
-        condominio = cob.get('condominio_sugerido', 0) or 0
+        condominio = cob.get('condominio_inquilino', 0) or 0
 
         # Calcular IPTU mensal se forma de pagamento for mensal
         iptu = 0
@@ -2259,6 +2530,263 @@ def relatorio_contratos_excel():
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     nome_arquivo = f'contratos_{timestamp}.xlsx'
+
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=nome_arquivo
+    )
+
+
+@app.route('/relatorios/fluxo-caixa/excel')
+@login_required
+def relatorio_fluxo_caixa_excel():
+    """Exporta relatório de fluxo de caixa por proprietário para Excel.
+
+    Agrupa por proprietário mostrando:
+    - Endereço do imóvel
+    - Receita (valor recebido)
+    - IPTU (pago)
+    - Condomínio Total (pago)
+    - Saldo
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from collections import defaultdict
+
+    # Obter parâmetros de filtro
+    data_inicio = request.args.get('data_inicio')
+    data_fim = request.args.get('data_fim')
+
+    if not data_inicio or not data_fim:
+        flash('Informe a data inicial e final para gerar o relatório.', 'warning')
+        return redirect(url_for('listar_relatorios'))
+
+    # Buscar todos os imóveis (ocupados e desocupados)
+    imoveis = db.execute_query("""
+        SELECT id, endereco_completo, proprietario
+        FROM imoveis
+        ORDER BY proprietario, endereco_completo
+    """)
+
+    if not imoveis:
+        flash('Nenhum imóvel encontrado.', 'warning')
+        return redirect(url_for('listar_relatorios'))
+
+    # Buscar receitas RECEBIDAS no período (por imóvel via contrato)
+    receitas = db.execute_query("""
+        SELECT c.id_imovel, SUM(r.valor_recebido) as total_recebido
+        FROM receitas r
+        JOIN contratos c ON r.id_contrato = c.id
+        WHERE r.data_recebimento IS NOT NULL
+          AND r.data_recebimento BETWEEN ? AND ?
+        GROUP BY c.id_imovel
+    """, (data_inicio, data_fim))
+
+    receitas_por_imovel = {r['id_imovel']: r['total_recebido'] or 0 for r in receitas}
+
+    # Buscar despesas de IPTU PAGAS no período
+    despesas_iptu = db.execute_query("""
+        SELECT id_imovel, SUM(valor_pago) as total_pago
+        FROM despesas
+        WHERE tipo_despesa = 'IPTU'
+          AND data_pagamento IS NOT NULL
+          AND data_pagamento BETWEEN ? AND ?
+        GROUP BY id_imovel
+    """, (data_inicio, data_fim))
+
+    iptu_por_imovel = {d['id_imovel']: d['total_pago'] or 0 for d in despesas_iptu}
+
+    # Buscar despesas de Condomínio PAGAS no período
+    despesas_cond = db.execute_query("""
+        SELECT id_imovel, SUM(valor_pago) as total_pago
+        FROM despesas
+        WHERE tipo_despesa = 'Condomínio'
+          AND data_pagamento IS NOT NULL
+          AND data_pagamento BETWEEN ? AND ?
+        GROUP BY id_imovel
+    """, (data_inicio, data_fim))
+
+    cond_por_imovel = {d['id_imovel']: d['total_pago'] or 0 for d in despesas_cond}
+
+    # Agrupar dados por proprietário
+    dados_por_proprietario = defaultdict(list)
+    for imovel in imoveis:
+        proprietario = imovel['proprietario'] or 'Sem Proprietário'
+        imovel_id = imovel['id']
+
+        receita = receitas_por_imovel.get(imovel_id, 0)
+        iptu = iptu_por_imovel.get(imovel_id, 0)
+        condominio = cond_por_imovel.get(imovel_id, 0)
+        saldo = receita - iptu - condominio
+
+        dados_por_proprietario[proprietario].append({
+            'endereco': imovel['endereco_completo'],
+            'receita': receita,
+            'iptu': iptu,
+            'condominio': condominio,
+            'saldo': saldo
+        })
+
+    # Criar Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Fluxo de Caixa"
+
+    # Estilos
+    header_fill = PatternFill(start_color="1565C0", end_color="1565C0", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    proprietario_fill = PatternFill(start_color="E3F2FD", end_color="E3F2FD", fill_type="solid")
+    proprietario_font = Font(bold=True, size=11)
+    subtotal_fill = PatternFill(start_color="BBDEFB", end_color="BBDEFB", fill_type="solid")
+    subtotal_font = Font(bold=True)
+    total_fill = PatternFill(start_color="0D47A1", end_color="0D47A1", fill_type="solid")
+    total_font = Font(bold=True, color="FFFFFF", size=12)
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    money_format = 'R$ #,##0.00'
+
+    # Formatar datas para exibição
+    data_inicio_fmt = datetime.strptime(data_inicio, '%Y-%m-%d').strftime('%d/%m/%Y')
+    data_fim_fmt = datetime.strptime(data_fim, '%Y-%m-%d').strftime('%d/%m/%Y')
+
+    # Título
+    ws.merge_cells('A1:F1')
+    ws['A1'] = f"FLUXO DE CAIXA POR PROPRIETÁRIO"
+    ws['A1'].font = Font(bold=True, size=14)
+    ws['A1'].alignment = Alignment(horizontal="center")
+
+    # Período
+    ws.merge_cells('A2:F2')
+    ws['A2'] = f"Período: {data_inicio_fmt} a {data_fim_fmt}"
+    ws['A2'].font = Font(size=11, italic=True)
+    ws['A2'].alignment = Alignment(horizontal="center")
+
+    # Subtítulo
+    ws.merge_cells('A3:F3')
+    ws['A3'] = f"Gerado em {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+    ws['A3'].font = Font(size=10, italic=True)
+    ws['A3'].alignment = Alignment(horizontal="center")
+
+    # Cabeçalhos
+    headers = ['Proprietário / Endereço', 'Receita', 'IPTU', 'Condomínio', 'Saldo', '']
+    for col, header in enumerate(headers[:5], 1):
+        cell = ws.cell(row=5, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = border
+
+    # Dados
+    row_num = 6
+    total_geral_receita = 0
+    total_geral_iptu = 0
+    total_geral_condominio = 0
+    total_geral_saldo = 0
+
+    # Ordenar proprietários
+    proprietarios_ordenados = sorted(dados_por_proprietario.keys())
+
+    for proprietario in proprietarios_ordenados:
+        imoveis_prop = dados_por_proprietario[proprietario]
+
+        # Linha do proprietário
+        ws.merge_cells(f'A{row_num}:E{row_num}')
+        cell = ws.cell(row=row_num, column=1, value=f"📁 {proprietario}")
+        cell.fill = proprietario_fill
+        cell.font = proprietario_font
+        cell.border = border
+        for col in range(2, 6):
+            ws.cell(row=row_num, column=col).fill = proprietario_fill
+            ws.cell(row=row_num, column=col).border = border
+        row_num += 1
+
+        # Imóveis do proprietário
+        subtotal_receita = 0
+        subtotal_iptu = 0
+        subtotal_condominio = 0
+        subtotal_saldo = 0
+
+        for imovel in imoveis_prop:
+            ws.cell(row=row_num, column=1, value=f"   {imovel['endereco']}").border = border
+
+            cell_receita = ws.cell(row=row_num, column=2, value=imovel['receita'])
+            cell_receita.number_format = money_format
+            cell_receita.border = border
+
+            cell_iptu = ws.cell(row=row_num, column=3, value=imovel['iptu'])
+            cell_iptu.number_format = money_format
+            cell_iptu.border = border
+
+            cell_cond = ws.cell(row=row_num, column=4, value=imovel['condominio'])
+            cell_cond.number_format = money_format
+            cell_cond.border = border
+
+            cell_saldo = ws.cell(row=row_num, column=5, value=imovel['saldo'])
+            cell_saldo.number_format = money_format
+            cell_saldo.border = border
+            if imovel['saldo'] < 0:
+                cell_saldo.font = Font(color="FF0000")
+
+            subtotal_receita += imovel['receita']
+            subtotal_iptu += imovel['iptu']
+            subtotal_condominio += imovel['condominio']
+            subtotal_saldo += imovel['saldo']
+
+            row_num += 1
+
+        # Subtotal do proprietário
+        ws.cell(row=row_num, column=1, value=f"   Subtotal {proprietario}").font = subtotal_font
+        ws.cell(row=row_num, column=1).fill = subtotal_fill
+        ws.cell(row=row_num, column=1).border = border
+
+        for col, valor in enumerate([subtotal_receita, subtotal_iptu, subtotal_condominio, subtotal_saldo], 2):
+            cell = ws.cell(row=row_num, column=col, value=valor)
+            cell.number_format = money_format
+            cell.font = subtotal_font
+            cell.fill = subtotal_fill
+            cell.border = border
+            if col == 5 and valor < 0:
+                cell.font = Font(bold=True, color="FF0000")
+
+        total_geral_receita += subtotal_receita
+        total_geral_iptu += subtotal_iptu
+        total_geral_condominio += subtotal_condominio
+        total_geral_saldo += subtotal_saldo
+
+        row_num += 2  # Espaço entre proprietários
+
+    # Total Geral
+    ws.cell(row=row_num, column=1, value="TOTAL GERAL").font = total_font
+    ws.cell(row=row_num, column=1).fill = total_fill
+    ws.cell(row=row_num, column=1).border = border
+
+    for col, valor in enumerate([total_geral_receita, total_geral_iptu, total_geral_condominio, total_geral_saldo], 2):
+        cell = ws.cell(row=row_num, column=col, value=valor)
+        cell.number_format = money_format
+        cell.font = total_font
+        cell.fill = total_fill
+        cell.border = border
+
+    # Ajustar largura das colunas
+    ws.column_dimensions['A'].width = 50
+    ws.column_dimensions['B'].width = 18
+    ws.column_dimensions['C'].width = 15
+    ws.column_dimensions['D'].width = 18
+    ws.column_dimensions['E'].width = 18
+
+    # Salvar em memória
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    nome_arquivo = f'fluxo_caixa_{timestamp}.xlsx'
 
     return send_file(
         output,

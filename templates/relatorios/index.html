@@ -42,14 +42,26 @@
         </div>
     </a>
     
-    <div class="card" style="cursor: pointer;" onclick="alert('Funcionalidade em desenvolvimento')">
+    <div class="card" style="border: 2px solid var(--info);">
         <div style="text-align: center; padding: var(--spacing-lg);">
             <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">📈</div>
             <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-sm);">Fluxo de Caixa</h3>
             <p style="color: var(--text-muted); margin-bottom: var(--spacing-md);">
-                Análise de receitas vs despesas por período
+                Receitas e despesas por proprietário (somente valores pagos/recebidos)
             </p>
-            <button class="btn btn-primary">Gerar Relatório</button>
+            <form action="{{ url_for('relatorio_fluxo_caixa_excel') }}" method="GET" style="display: flex; flex-direction: column; gap: var(--spacing-sm); align-items: center;">
+                <div style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap; justify-content: center;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--text-muted);">Data Inicial</label>
+                        <input type="date" name="data_inicio" class="form-control" style="width: 150px;" required>
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--text-muted);">Data Final</label>
+                        <input type="date" name="data_fim" class="form-control" style="width: 150px;" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-info">Baixar Excel</button>
+            </form>
         </div>
     </div>
     

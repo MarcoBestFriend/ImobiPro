@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}{{ pessoa.nome_completo }} - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>👤 {{ pessoa.nome_completo }}</h2>
+            <p>Detalhes completos da pessoa</p>
+        </div>
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('listar_pessoas') }}" class="btn btn-secondary">← Voltar</a>
+            <a href="{{ url_for('editar_pessoa', id=pessoa.id) }}" class="btn btn-primary">✏️ Editar</a>
+            <form action="{{ url_for('excluir_pessoa', id=pessoa.id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Tem certeza que deseja excluir esta pessoa?\n\nEsta ação não pode ser desfeita.');">
+                <button type="submit" class="btn btn-danger" style="padding: 0.5rem 1rem;">🗑️ Excluir</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Informações principais -->
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📋 Dados Pessoais</h3>
+            <span class="badge badge-{{ 'success' if pessoa.situacao == 'Inquilino' else 'info' if pessoa.situacao == 'Fiador' else 'warning' }}">
+                {{ pessoa.situacao }}
+            </span>
+        </div>
+
+        <div style="display: grid; gap: var(--spacing-md);">
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    ID
+                </label>
+                <div style="color: var(--text-primary); font-weight: 600; font-family: monospace;">
+                    #{{ pessoa.id }}
+                </div>
+            </div>
+
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Nome Completo
+                </label>
+                <div style="color: var(--text-primary); font-weight: 600; font-size: 1.125rem;">
+                    {{ pessoa.nome_completo }}
+                </div>
+            </div>
+
+            {% if pessoa.cpf_cnpj %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    CPF/CNPJ
+                </label>
+                <div style="color: var(--text-primary); font-family: monospace; font-size: 1.1rem;">
+                    {{ pessoa.cpf_cnpj }}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if pessoa.telefone %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Telefone
+                </label>
+                <div style="color: var(--text-primary);">
+                    <a href="tel:{{ pessoa.telefone }}" style="color: var(--accent);">{{ pessoa.telefone }}</a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if pessoa.email %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    E-mail
+                </label>
+                <div style="color: var(--text-primary);">
+                    <a href="mailto:{{ pessoa.email }}" style="color: var(--accent);">{{ pessoa.email }}</a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if pessoa.endereco_completo %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Endereço
+                </label>
+                <div style="color: var(--text-primary);">
+                    {{ pessoa.endereco_completo }}
+                    {% if pessoa.cidade %} - {{ pessoa.cidade }}{% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if pessoa.estado_civil %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Estado Civil
+                </label>
+                <div style="color: var(--text-primary);">
+                    {{ pessoa.estado_civil }}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if pessoa.nome_conjuge %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Cônjuge
+                </label>
+                <div style="color: var(--text-primary);">
+                    {{ pessoa.nome_conjuge }}
+                    {% if pessoa.cpf_conjuge %}<span style="color: var(--text-muted);"> (CPF: {{ pessoa.cpf_conjuge }})</span>{% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if pessoa.patrimonio %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Patrimônio
+                </label>
+                <div style="color: var(--success); font-weight: 600;">
+                    {{ pessoa.patrimonio|formatar_moeda }}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if pessoa.observacoes %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Observações
+                </label>
+                <div style="color: var(--text-primary); white-space: pre-wrap; background: var(--bg-tertiary); padding: var(--spacing-sm); border-radius: var(--radius-sm);">
+                    {{ pessoa.observacoes }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Resumo -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📊 Resumo</h3>
+        </div>
+
+        <div style="display: grid; gap: var(--spacing-md);">
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Situação
+                </label>
+                <div style="font-size: 1.25rem;">
+                    <span class="badge badge-{{ 'success' if pessoa.situacao == 'Inquilino' else 'info' if pessoa.situacao == 'Fiador' else 'warning' }}" style="font-size: 1rem;">
+                        {{ pessoa.situacao }}
+                    </span>
+                </div>
+            </div>
+
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Contratos como Inquilino
+                </label>
+                <div style="color: var(--accent); font-weight: 700; font-size: 1.5rem;">
+                    {{ contratos_inquilino|length }}
+                </div>
+            </div>
+
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Contratos como Fiador
+                </label>
+                <div style="color: var(--info); font-weight: 700; font-size: 1.5rem;">
+                    {{ contratos_fiador|length }}
+                </div>
+            </div>
+
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Data de Cadastro
+                </label>
+                <div style="color: var(--text-primary);">
+                    {{ pessoa.data_cadastro|formatar_data if pessoa.data_cadastro else '-' }}
+                </div>
+            </div>
+
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Última Atualização
+                </label>
+                <div style="color: var(--text-primary);">
+                    {{ pessoa.data_atualizacao|formatar_data if pessoa.data_atualizacao else '-' }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contratos como Inquilino -->
+{% if contratos_inquilino %}
+<div class="card" style="margin-bottom: var(--spacing-md);">
+    <div class="card-header">
+        <h3 class="card-title">📋 Contratos como Inquilino</h3>
+        <span class="badge badge-success">{{ contratos_inquilino|length }}</span>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Imóvel</th>
+                    <th>Início</th>
+                    <th>Término</th>
+                    <th>Aluguel</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for contrato in contratos_inquilino %}
+                <tr>
+                    <td style="color: var(--text-primary); font-weight: 500;">
+                        {{ contrato.imovel_endereco[:40] }}...
+                    </td>
+                    <td>{{ contrato.inicio_contrato|formatar_data }}</td>
+                    <td>{{ contrato.fim_contrato|formatar_data if contrato.fim_contrato else 'Indeterminado' }}</td>
+                    <td style="color: var(--success); font-weight: 600;">
+                        {{ contrato.valor_aluguel|formatar_moeda }}
+                    </td>
+                    <td>
+                        <span class="badge badge-{{ contrato.status_contrato|status_badge }}">
+                            {{ contrato.status_contrato }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('ver_contrato', id=contrato.id) }}" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">
+                            Ver
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Contratos como Fiador -->
+{% if contratos_fiador %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">🤝 Contratos como Fiador</h3>
+        <span class="badge badge-info">{{ contratos_fiador|length }}</span>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Imóvel</th>
+                    <th>Inquilino</th>
+                    <th>Início</th>
+                    <th>Término</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for contrato in contratos_fiador %}
+                <tr>
+                    <td style="color: var(--text-primary); font-weight: 500;">
+                        {{ contrato.imovel_endereco[:35] }}...
+                    </td>
+                    <td>{{ contrato.inquilino_nome }}</td>
+                    <td>{{ contrato.inicio_contrato|formatar_data }}</td>
+                    <td>{{ contrato.fim_contrato|formatar_data if contrato.fim_contrato else 'Indeterminado' }}</td>
+                    <td>
+                        <span class="badge badge-{{ contrato.status_contrato|status_badge }}">
+                            {{ contrato.status_contrato }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('ver_contrato', id=contrato.id) }}" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">
+                            Ver
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

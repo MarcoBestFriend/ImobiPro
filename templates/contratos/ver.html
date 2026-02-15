@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}Contrato #{{ contrato.id }} - ImobiPro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>📋 Contrato #{{ contrato.id }}</h2>
+            <p>Detalhes completos do contrato</p>
+        </div>
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('listar_contratos') }}" class="btn btn-secondary">← Voltar</a>
+            <a href="{{ url_for('editar_contrato', id=contrato.id) }}" class="btn btn-primary">✏️ Editar</a>
+            <form action="{{ url_for('excluir_contrato', id=contrato.id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Tem certeza que deseja excluir este contrato?\n\nEsta ação não pode ser desfeita.');">
+                <button type="submit" class="btn btn-danger" style="padding: 0.5rem 1rem;">🗑️ Excluir</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Status e resumo -->
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+    <div class="stat-card">
+        <div class="stat-label">Status</div>
+        <div>
+            <span class="badge badge-{{ contrato.status_contrato|status_badge }}" style="font-size: 1.1rem;">
+                {{ contrato.status_contrato }}
+            </span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Valor do Aluguel</div>
+        <div class="stat-value" style="color: var(--success);">
+            {{ contrato.valor_aluguel|formatar_moeda }}
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Dia de Vencimento</div>
+        <div class="stat-value" style="color: var(--info);">
+            {{ contrato.dia_vencimento }}
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Garantia</div>
+        <div class="stat-value" style="font-size: 1.2rem; text-transform: capitalize;">
+            {{ contrato.garantia }}
+        </div>
+    </div>
+</div>
+
+<!-- Informações principais -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+    <!-- Imóvel -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🏠 Imóvel</h3>
+        </div>
+        <div style="display: grid; gap: var(--spacing-md);">
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Endereço
+                </label>
+                <div style="color: var(--text-primary); font-weight: 600;">
+                    {{ imovel.endereco_completo }}
+                </div>
+            </div>
+
+            {% if imovel.proprietario %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Proprietário
+                </label>
+                <div style="color: var(--text-primary);">
+                    {{ imovel.proprietario }}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if imovel.tipo_imovel %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Tipo do Imóvel
+                </label>
+                <div style="color: var(--text-secondary); white-space: pre-wrap;">
+                    {{ imovel.tipo_imovel }}
+                </div>
+            </div>
+            {% endif %}
+
+            <div style="margin-top: var(--spacing-sm);">
+                <a href="{{ url_for('ver_imovel', id=imovel.id) }}" class="btn btn-secondary" style="font-size: 0.875rem;">
+                    Ver Imóvel Completo →
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inquilino -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">👤 Inquilino</h3>
+        </div>
+        <div style="display: grid; gap: var(--spacing-md);">
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Nome
+                </label>
+                <div style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem;">
+                    {{ inquilino.nome_completo }}
+                </div>
+            </div>
+
+            {% if inquilino.cpf_cnpj %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    CPF/CNPJ
+                </label>
+                <div style="color: var(--text-primary); font-family: monospace;">
+                    {{ inquilino.cpf_cnpj }}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if inquilino.telefone %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Telefone
+                </label>
+                <div>
+                    <a href="tel:{{ inquilino.telefone }}" style="color: var(--accent);">{{ inquilino.telefone }}</a>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if inquilino.email %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    E-mail
+                </label>
+                <div>
+                    <a href="mailto:{{ inquilino.email }}" style="color: var(--accent);">{{ inquilino.email }}</a>
+                </div>
+            </div>
+            {% endif %}
+
+            <div style="margin-top: var(--spacing-sm);">
+                <a href="{{ url_for('ver_pessoa', id=inquilino.id) }}" class="btn btn-secondary" style="font-size: 0.875rem;">
+                    Ver Inquilino Completo →
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Datas e Fiador -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+    <!-- Datas do Contrato -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📅 Período do Contrato</h3>
+        </div>
+        <div style="display: grid; gap: var(--spacing-md);">
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Início do Contrato
+                </label>
+                <div style="color: var(--success); font-weight: 600; font-size: 1.1rem;">
+                    {{ contrato.inicio_contrato|formatar_data }}
+                </div>
+            </div>
+
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Término do Contrato
+                </label>
+                <div style="color: var(--warning); font-weight: 600; font-size: 1.1rem;">
+                    {{ contrato.fim_contrato|formatar_data if contrato.fim_contrato else 'Indeterminado' }}
+                </div>
+            </div>
+
+            {% if contrato.indice_reajuste %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Índice de Reajuste
+                </label>
+                <div style="color: var(--text-primary);">
+                    {{ contrato.indice_reajuste }}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if contrato.data_base_reajuste %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Data Base do Reajuste
+                </label>
+                <div style="color: var(--text-primary);">
+                    {{ contrato.data_base_reajuste|formatar_data }}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if contrato.ultimo_reajuste %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Último Reajuste
+                </label>
+                <div style="color: var(--text-primary);">
+                    {{ contrato.ultimo_reajuste|formatar_data }}
+                    {% if contrato.percentual_ultimo_reajuste %}
+                        <span style="color: var(--success);">({{ "%.2f"|format(contrato.percentual_ultimo_reajuste) }}%)</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Fiador -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🤝 Fiador</h3>
+        </div>
+        {% if fiador %}
+        <div style="display: grid; gap: var(--spacing-md);">
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Nome
+                </label>
+                <div style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem;">
+                    {{ fiador.nome_completo }}
+                </div>
+            </div>
+
+            {% if fiador.cpf_cnpj %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    CPF/CNPJ
+                </label>
+                <div style="color: var(--text-primary); font-family: monospace;">
+                    {{ fiador.cpf_cnpj }}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if fiador.telefone %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                    Telefone
+                </label>
+                <div>
+                    <a href="tel:{{ fiador.telefone }}" style="color: var(--accent);">{{ fiador.telefone }}</a>
+                </div>
+            </div>
+            {% endif %}
+
+            <div style="margin-top: var(--spacing-sm);">
+                <a href="{{ url_for('ver_pessoa', id=fiador.id) }}" class="btn btn-secondary" style="font-size: 0.875rem;">
+                    Ver Fiador Completo →
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: var(--spacing-lg); color: var(--text-muted);">
+            <div style="font-size: 2rem; margin-bottom: var(--spacing-sm);">🚫</div>
+            <p>Este contrato não possui fiador.</p>
+            <p style="font-size: 0.875rem;">Garantia: <strong style="text-transform: capitalize;">{{ contrato.garantia }}</strong></p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Observações -->
+{% if contrato.observacoes %}
+<div class="card" style="margin-bottom: var(--spacing-md);">
+    <div class="card-header">
+        <h3 class="card-title">📝 Observações</h3>
+    </div>
+    <div style="white-space: pre-wrap; color: var(--text-primary); background: var(--bg-tertiary); padding: var(--spacing-md); border-radius: var(--radius-sm);">
+        {{ contrato.observacoes }}
+    </div>
+</div>
+{% endif %}
+
+<!-- Receitas do Contrato -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">💰 Receitas do Contrato</h3>
+        <span class="badge badge-info">{{ receitas|length }}</span>
+    </div>
+    {% if receitas %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Mês Ref.</th>
+                    <th>Aluguel</th>
+                    <th>Condomínio</th>
+                    <th>IPTU</th>
+                    <th>Total</th>
+                    <th>Vencimento</th>
+                    <th>Status</th>
+                    <th>Recebido</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for receita in receitas %}
+                <tr>
+                    <td>{{ receita.mes_referencia|formatar_data }}</td>
+                    <td style="color: var(--success);">{{ receita.aluguel_devido|formatar_moeda }}</td>
+                    <td>{{ receita.condominio_devido|formatar_moeda if receita.condominio_devido else '-' }}</td>
+                    <td>{{ receita.iptu_devido|formatar_moeda if receita.iptu_devido else '-' }}</td>
+                    <td style="font-weight: 600;">{{ receita.valor_total_devido|formatar_moeda }}</td>
+                    <td>{{ receita.vencimento_previsto|formatar_data }}</td>
+                    <td>
+                        <span class="badge badge-{{ receita.status|status_badge }}">
+                            {{ receita.status }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if receita.valor_recebido %}
+                            <span style="color: var(--success);">{{ receita.valor_recebido|formatar_moeda }}</span>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                {{ receita.data_recebimento|formatar_data }}
+                            </div>
+                        {% else %}
+                            <span style="color: var(--text-muted);">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: var(--spacing-lg); color: var(--text-muted);">
+        <div style="font-size: 2rem; margin-bottom: var(--spacing-sm);">💰</div>
+        <p>Nenhuma receita lançada para este contrato.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Informações de controle -->
+<div class="card" style="margin-top: var(--spacing-md);">
+    <div style="display: flex; justify-content: space-between; color: var(--text-muted); font-size: 0.875rem;">
+        <span>📅 Cadastrado em: {{ contrato.data_cadastro|formatar_data if contrato.data_cadastro else '-' }}</span>
+        <span>🔄 Última atualização: {{ contrato.data_atualizacao|formatar_data if contrato.data_atualizacao else '-' }}</span>
+    </div>
+</div>
+
+{% endblock %}

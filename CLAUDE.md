@@ -3,7 +3,7 @@
 ## 📋 Informações Rápidas do Projeto
 
 - **Nome**: ImobiPro
-- **Versão**: 1.4.0 (Relatórios Excel + Atualização em lote de condomínios)
+- **Versão**: 1.6.0 (Consulta detalhada de pessoas, contratos e receitas)
 - **Objetivo**: Sistema completo para gestão de imóveis, contratos, despesas e receitas de aluguéis
 - **Stack**: Python 3.10+, Flask, SQLite, Jinja2
 - **Ambiente**: Ubuntu 24.04, VSCode
@@ -49,7 +49,7 @@ python3 utils/backup.py
 
 ```
 ImobiPro/
-├── app.py                          # Aplicação Flask (~1500 linhas)
+├── app.py                          # Aplicação Flask (~2500 linhas)
 ├── config.py                       # Configurações
 ├── requirements.txt                # Dependências
 ├── database/
@@ -70,18 +70,22 @@ ImobiPro/
 │   ├── imoveis/atualizar_condominios.html  # Atualização em lote
 │   ├── pessoas/listar.html
 │   ├── pessoas/form.html
+│   ├── pessoas/ver.html            # Consulta detalhada de pessoa
 │   ├── contratos/listar.html
 │   ├── contratos/form.html         # Cadastro/edição de contratos
+│   ├── contratos/ver.html          # Consulta detalhada de contrato
 │   ├── despesas/listar.html        # Lista + botões lançamento automático
 │   ├── despesas/form.html          # Cadastro/edição de despesas
 │   ├── receitas/listar.html
 │   ├── receitas/form.html          # Cadastro/edição de receitas
+│   ├── receitas/ver.html           # Consulta detalhada de receita
 │   ├── relatorios/
 │   │   ├── index.html              # Menu de relatórios
 │   │   └── despesas_pendentes.html # Relatório despesas pendentes
 │   └── dados/index.html            # Página de backup/importação
 ├── utils/backup.py                 # Backup/restore
-└── migrar_planilha.py             # Migração Excel→SQLite
+├── migrar_planilha.py             # Migração Excel→SQLite
+└── migrar_condominio.py           # Migração condomínio_sugerido → inquilino/total
 ```
 
 ## 🗄️ Dicionário de Dados - Schema Completo
@@ -101,7 +105,8 @@ ImobiPro/
 | valor_iptu_anual | REAL | Valor anual IPTU | Não |
 | forma_pagamento_iptu | TEXT | "Anual" ou "Mensal" | Sim |
 | aluguel_pretendido | REAL | Valor sugerido para locação | Não |
-| condominio_sugerido | REAL | Valor do condomínio | Não |
+| condominio_inquilino | REAL | Condomínio pago pelo inquilino (despesas ordinárias) | Não |
+| condominio_total | REAL | Condomínio total (ordinárias + extraordinárias) | Não |
 | dia_venc_condominio | INTEGER | Dia vencimento condomínio (1-31) | Não |
 | valor_mercado | REAL | Valor de mercado do imóvel | Não |
 | data_aquisicao | DATE | Data de aquisição | Não |
@@ -327,7 +332,9 @@ POST /admin/usuarios/<id>/toggle-ativo → Ativar/desativar
 ### Dashboard
 ```
 GET  /               → Redireciona /dashboard
-GET  /dashboard      → Dashboard com stats
+GET  /dashboard      → Dashboard com stats (imóveis disponíveis, despesas vencidas,
+                        próxima despesa, próximo vencimento de contrato,
+                        receitas pendentes, taxa de ocupação)
 ```
 
 ### Imóveis
@@ -348,6 +355,7 @@ POST /imoveis/atualizar-condominios → Processar atualização
 GET  /pessoas                   → Lista
 GET  /pessoas/novo              → Form cadastro
 POST /pessoas/novo              → Processar
+GET  /pessoas/<id>              → Consulta detalhada (dados, contratos como inquilino/fiador)
 GET  /pessoas/<id>/editar       → Form editar
 POST /pessoas/<id>/editar       → Processar
 POST /pessoas/<id>/excluir      → Excluir (com confirmação)
@@ -358,6 +366,7 @@ POST /pessoas/<id>/excluir      → Excluir (com confirmação)
 GET  /contratos                 → Lista
 GET  /contratos/novo            → Form cadastro
 POST /contratos/novo            → Processar
+GET  /contratos/<id>            → Consulta detalhada (imóvel, inquilino, fiador, receitas)
 GET  /contratos/<id>/editar     → Form editar
 POST /contratos/<id>/editar     → Processar
 POST /contratos/<id>/excluir    → Excluir (com confirmação)
@@ -381,6 +390,7 @@ POST /despesas/gerar-condominio-mensal → Gera condomínio do mês
 GET  /receitas                      → Lista (filtros + estatísticas)
 GET  /receitas/nova                 → Form cadastro
 POST /receitas/nova                 → Processar
+GET  /receitas/<id>                 → Consulta detalhada (composição valor, imóvel, inquilino, recebimento)
 GET  /receitas/<id>/editar          → Form editar
 POST /receitas/<id>/editar          → Processar
 POST /receitas/<id>/excluir         → Excluir
@@ -405,6 +415,7 @@ GET  /relatorios/imoveis-desocupados          → Relatório de imóveis desocup
 GET  /relatorios/imoveis-desocupados/excel    → Exportar imóveis desocupados para Excel
 GET  /relatorios/cobrancas-mes/excel          → Relatório de cobranças do mês (Excel)
 GET  /relatorios/contratos/excel              → Relatório de contratos (Excel)
+GET  /relatorios/fluxo-caixa/excel            → Fluxo de caixa por proprietário (Excel)
 ```
 
 ---
@@ -441,7 +452,7 @@ GET  /relatorios/contratos/excel              → Relatório de contratos (Excel
 
 ---
 
-## ✅ Estado Atual (02/02/2026)
+## ✅ Estado Atual (10/02/2026)
 
 ### Dados Reais Importados
 - 29 imóveis (dados reais do arquivo imoveis2026.xlsx)
@@ -449,15 +460,16 @@ GET  /relatorios/contratos/excel              → Relatório de contratos (Excel
 - Contratos cadastrados conforme necessidade
 
 ### Implementado
-- ✅ Dashboard
+- ✅ Dashboard (imóveis disponíveis, despesas vencidas, próxima despesa, próx. venc. contrato)
 - ✅ CRUD imóveis (listar, novo, editar, excluir, visualizar)
-- ✅ CRUD pessoas (listar, novo, editar, excluir)
-- ✅ CRUD contratos (listar, novo, editar, excluir) - atualiza status do imóvel automaticamente
+- ✅ CRUD pessoas (listar, novo, editar, excluir, **visualizar**) - consulta com contratos relacionados
+- ✅ CRUD contratos (listar, novo, editar, excluir, **visualizar**) - consulta com receitas, imóvel, inquilino, fiador
 - ✅ CRUD despesas (listar, novo, editar, excluir, pagar) - **status "Atrasada" automático**
-- ✅ CRUD receitas (listar, novo, editar, excluir, receber)
+- ✅ CRUD receitas (listar, novo, editar, excluir, receber, **visualizar**) - consulta com composição de valor
 - ✅ **Lançamento automático IPTU anual** (data de vencimento customizada via modal)
-- ✅ **Lançamento automático Condomínio mensal** (vencimento conforme cadastro)
-- ✅ **Atualização em lote de condomínios** (botão na lista de imóveis)
+- ✅ **Lançamento automático Condomínio mensal** (usa condominio_total)
+- ✅ **Atualização em lote de condomínios** (inquilino e total separados)
+- ✅ **Separação de condomínio**: inquilino (ordinárias) vs total (ordinárias + extraordinárias)
 - ✅ Importação/Exportação de dados (ZIP com CSVs)
 - ✅ Migração Excel
 - ✅ Backup manual e download do banco
@@ -466,8 +478,9 @@ GET  /relatorios/contratos/excel              → Relatório de contratos (Excel
 - ✅ **Administração de usuários** (criar, editar, excluir, ativar/desativar)
 - ✅ **Relatório de Despesas Pendentes** com exportação Excel
 - ✅ **Relatório de Imóveis Desocupados** com exportação Excel
-- ✅ **Relatório de Cobranças do Mês** (Excel direto)
+- ✅ **Relatório de Cobranças do Mês** (usa condominio_inquilino)
 - ✅ **Relatório de Contratos** (Excel direto)
+- ✅ **Relatório de Fluxo de Caixa** por proprietário (receitas/despesas pagas)
 - ✅ **Botões de cadastro rápido** de inquilino/fiador no formulário de contratos
 
 ### Planejado (NÃO FAZER SEM PERMISSÃO)
@@ -515,7 +528,8 @@ GET  /relatorios/contratos/excel              → Relatório de contratos (Excel
 
 ### Gerar Condomínio Mensal
 - **Rota**: `POST /despesas/gerar-condominio-mensal`
-- **O que faz**: Cria despesas de condomínio para todos os imóveis com `condominio_sugerido > 0`
+- **O que faz**: Cria despesas de condomínio para todos os imóveis com `condominio_total > 0`
+- **Valor usado**: `condominio_total` (inclui despesas ordinárias + extraordinárias)
 - **Vencimento**: Usa `dia_venc_condominio` do imóvel (ou dia 10 se não definido)
 - **Proteção**: Não cria duplicatas (verifica se já existe condomínio para o mês)
 - **Tipo despesa**: "Condomínio"
@@ -523,7 +537,8 @@ GET  /relatorios/contratos/excel              → Relatório de contratos (Excel
 
 ### Atualizar Condomínios em Lote
 - **Rota**: `GET/POST /imoveis/atualizar-condominios`
-- **O que faz**: Exibe todos os imóveis com condomínio > 0 e permite atualizar os valores de uma vez
+- **O que faz**: Exibe todos os imóveis com condomínio cadastrado e permite atualizar os valores
+- **Campos**: Condomínio Inquilino (despesas ordinárias) e Condomínio Total (ordinárias + extraordinárias)
 - **Campos em branco**: Não são alterados
 - **Aceita**: Valores com vírgula ou ponto decimal
 
@@ -535,6 +550,7 @@ GET  /relatorios/contratos/excel              → Relatório de contratos (Excel
 - **Rota**: `GET /relatorios/cobrancas-mes/excel`
 - **Colunas**: Endereço, Inquilino, Telefone, Aluguel, IPTU, Condomínio, Vencimento, Proprietário
 - **Filtro**: Contratos Ativos ou Prorrogados
+- **Condomínio**: Usa `condominio_inquilino` (valor cobrado do inquilino)
 - **IPTU**: Calculado automaticamente (anual ÷ 12) quando forma de pagamento = "Mensal"
 
 ### Relatório de Contratos
@@ -552,6 +568,16 @@ GET  /relatorios/contratos/excel              → Relatório de contratos (Excel
 - **Rota**: `GET /relatorios/imoveis-desocupados/excel`
 - **Colunas**: ID, Endereço, Proprietário, Tipo/Descrição, Aluguel Pretendido, Valor de Mercado
 - **Filtro opcional**: Proprietário
+
+### Relatório de Fluxo de Caixa
+- **Rota**: `GET /relatorios/fluxo-caixa/excel`
+- **Parâmetros**: `data_inicio` e `data_fim` (obrigatórios)
+- **Colunas**: Proprietário/Endereço, Receita, IPTU, Condomínio, Saldo
+- **Agrupamento**: Por proprietário com subtotais
+- **Receita**: Somente valores **recebidos** no período
+- **Despesas**: Somente valores **pagos** no período (IPTU e Condomínio)
+- **Inclui**: Imóveis desocupados (podem ter despesas)
+- **Saldo**: Receita - IPTU - Condomínio
 
 ---
 

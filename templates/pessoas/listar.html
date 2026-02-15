@@ -92,6 +92,9 @@
                         </td>
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
+                                <a href="{{ url_for('ver_pessoa', id=pessoa.id) }}" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                    👁️ Ver
+                                </a>
                                 <a href="{{ url_for('editar_pessoa', id=pessoa.id) }}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
                                     ✏️ Editar
                                 </a>

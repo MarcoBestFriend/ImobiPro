@@ -28,6 +28,9 @@
             <button type="button" class="btn btn-warning" onclick="document.getElementById('modal-iptu').style.display='flex'">
                 🏛️ Gerar IPTU Anual
             </button>
+            <button type="button" class="btn btn-warning" onclick="document.getElementById('modal-iptu-mensal').style.display='flex'">
+                🏛️ Gerar IPTU Mensal
+            </button>
             <form method="POST" action="{{ url_for('gerar_condominio_mensal') }}" style="display: inline;">
                 <button type="submit" class="btn btn-info"
                         onclick="return confirm('Isso irá gerar despesas de Condomínio para todos os imóveis com valor cadastrado.\n\nReferência: Mês corrente.\n\nDeseja continuar?')">
@@ -47,7 +50,7 @@
         <form method="POST" action="{{ url_for('gerar_iptu_anual') }}">
             <div style="padding: var(--spacing-md);">
                 <p style="color: var(--text-secondary); margin-bottom: var(--spacing-md);">
-                    Informe a data de vencimento do IPTU para todos os imóveis com valor cadastrado.
+                    Informe a data de vencimento do IPTU para os imóveis com pagamento anual.
                 </p>
                 <div class="form-group">
                     <label class="form-label">Data de Vencimento *</label>
@@ -57,6 +60,35 @@
             </div>
             <div style="padding: var(--spacing-md); border-top: 1px solid var(--border-color); display: flex; gap: var(--spacing-sm); justify-content: flex-end;">
                 <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-iptu').style.display='none'">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-warning">
+                    Gerar IPTU
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal IPTU Mensal -->
+<div id="modal-iptu-mensal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="card" style="max-width: 400px; width: 90%; margin: 0;">
+        <div class="card-header">
+            <h3 class="card-title">🏛️ Gerar IPTU Mensal</h3>
+        </div>
+        <form method="POST" action="{{ url_for('gerar_iptu_mensal') }}">
+            <div style="padding: var(--spacing-md);">
+                <p style="color: var(--text-secondary); margin-bottom: var(--spacing-md);">
+                    Informe a data de vencimento do IPTU para os imóveis com pagamento mensal. O valor será calculado automaticamente (anual ÷ 12).
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Data de Vencimento *</label>
+                    <input type="date" name="data_vencimento" class="form-control" required
+                           value="{{ hoje }}">
+                </div>
+            </div>
+            <div style="padding: var(--spacing-md); border-top: 1px solid var(--border-color); display: flex; gap: var(--spacing-sm); justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-iptu-mensal').style.display='none'">
                     Cancelar
                 </button>
                 <button type="submit" class="btn btn-warning">
