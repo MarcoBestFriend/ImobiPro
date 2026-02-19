@@ -1750,12 +1750,19 @@ def excluir_receita(id):
 @app.route('/receitas/<int:id>/receber', methods=['POST'])
 @login_required
 def receber_receita(id):
-    """Marca uma receita como recebida."""
+    """Marca uma receita como recebida com o valor informado pelo usuário."""
     try:
         receita = db.get_by_id('receitas', id)
         if not receita:
             flash('Receita não encontrada.', 'danger')
             return redirect(url_for('listar_receitas'))
+
+        # Obter valor recebido do formulário
+        valor_recebido_str = request.form.get('valor_recebido', '')
+        try:
+            valor_recebido = float(valor_recebido_str) if valor_recebido_str else receita['valor_total_devido']
+        except (ValueError, TypeError):
+            valor_recebido = receita['valor_total_devido']
 
         # Incluir todos os campos que o trigger precisa para evitar erro de NULL
         dados = {
@@ -1764,7 +1771,7 @@ def receber_receita(id):
             'iptu_devido': receita['iptu_devido'] or 0,
             'desconto_multa': receita['desconto_multa'] or 0,
             'valor_total_devido': receita['valor_total_devido'],
-            'valor_recebido': receita['valor_total_devido'],
+            'valor_recebido': valor_recebido,
             'data_recebimento': date.today().strftime('%Y-%m-%d'),
             'status': 'Recebido'
         }
@@ -1794,51 +1801,44 @@ def listar_relatorios():
 @app.route('/relatorios/despesas-pendentes')
 @login_required
 def relatorio_despesas_pendentes():
-    """Relatório de despesas pendentes."""
+    """Relatório de despesas: vincendas e pagas, com filtro de período."""
     # Filtros
     filtro_tipo = request.args.get('tipo', '')
-    filtro_vencimento = request.args.get('vencimento_ate', '')
-    filtro_situacao = request.args.get('situacao', 'todas')
+    filtro_data_inicio = request.args.get('data_inicio', '')
+    filtro_data_fim = request.args.get('data_fim', '')
 
     hoje = date.today()
 
-    # Query base - despesas não pagas
-    query = """
+    # === DESPESAS VINCENDAS (não pagas) ===
+    query_vincendas = """
         SELECT d.*, i.endereco_completo as imovel_endereco
         FROM despesas d
         LEFT JOIN imoveis i ON d.id_imovel = i.id
         WHERE d.data_pagamento IS NULL
     """
-    params = []
+    params_vincendas = []
 
-    # Aplicar filtro de tipo
     if filtro_tipo:
-        query += " AND d.tipo_despesa = ?"
-        params.append(filtro_tipo)
+        query_vincendas += " AND d.tipo_despesa = ?"
+        params_vincendas.append(filtro_tipo)
 
-    # Aplicar filtro de vencimento
-    if filtro_vencimento:
-        query += " AND d.vencimento_previsto <= ?"
-        params.append(filtro_vencimento)
+    if filtro_data_inicio:
+        query_vincendas += " AND d.vencimento_previsto >= ?"
+        params_vincendas.append(filtro_data_inicio)
 
-    # Aplicar filtro de situação
-    if filtro_situacao == 'vencidas':
-        query += " AND d.vencimento_previsto < ?"
-        params.append(hoje.strftime('%Y-%m-%d'))
-    elif filtro_situacao == 'a_vencer':
-        query += " AND d.vencimento_previsto >= ?"
-        params.append(hoje.strftime('%Y-%m-%d'))
+    if filtro_data_fim:
+        query_vincendas += " AND d.vencimento_previsto <= ?"
+        params_vincendas.append(filtro_data_fim)
 
-    query += " ORDER BY d.vencimento_previsto ASC"
-
-    despesas = db.execute_query(query, tuple(params))
+    query_vincendas += " ORDER BY d.vencimento_previsto ASC"
+    despesas_vincendas = db.execute_query(query_vincendas, tuple(params_vincendas))
 
     # Adicionar flag de vencida e calcular estatísticas
-    total_valor = 0
+    total_vincendas_valor = 0
     total_vencidas = 0
     total_a_vencer = 0
 
-    for despesa in despesas:
+    for despesa in despesas_vincendas:
         venc = despesa.get('vencimento_previsto')
         if venc:
             try:
@@ -1855,67 +1855,65 @@ def relatorio_despesas_pendentes():
             despesa['vencida'] = False
             total_a_vencer += 1
 
-        total_valor += despesa.get('valor_previsto', 0) or 0
+        total_vincendas_valor += despesa.get('valor_previsto', 0) or 0
+
+    # === DESPESAS PAGAS ===
+    query_pagas = """
+        SELECT d.*, i.endereco_completo as imovel_endereco
+        FROM despesas d
+        LEFT JOIN imoveis i ON d.id_imovel = i.id
+        WHERE d.data_pagamento IS NOT NULL
+    """
+    params_pagas = []
+
+    if filtro_tipo:
+        query_pagas += " AND d.tipo_despesa = ?"
+        params_pagas.append(filtro_tipo)
+
+    if filtro_data_inicio:
+        query_pagas += " AND d.data_pagamento >= ?"
+        params_pagas.append(filtro_data_inicio)
+
+    if filtro_data_fim:
+        query_pagas += " AND d.data_pagamento <= ?"
+        params_pagas.append(filtro_data_fim)
+
+    query_pagas += " ORDER BY d.data_pagamento DESC"
+    despesas_pagas = db.execute_query(query_pagas, tuple(params_pagas))
+
+    total_pagas_valor = 0
+    for despesa in despesas_pagas:
+        total_pagas_valor += despesa.get('valor_pago', 0) or despesa.get('valor_previsto', 0) or 0
 
     return render_template('relatorios/despesas_pendentes.html',
-                         despesas=despesas,
-                         total_despesas=len(despesas),
-                         total_valor=total_valor,
+                         despesas_vincendas=despesas_vincendas,
+                         despesas_pagas=despesas_pagas,
+                         total_vincendas=len(despesas_vincendas),
+                         total_vincendas_valor=total_vincendas_valor,
                          total_vencidas=total_vencidas,
                          total_a_vencer=total_a_vencer,
+                         total_pagas=len(despesas_pagas),
+                         total_pagas_valor=total_pagas_valor,
                          filtro_tipo=filtro_tipo,
-                         filtro_vencimento=filtro_vencimento,
-                         filtro_situacao=filtro_situacao)
+                         filtro_data_inicio=filtro_data_inicio,
+                         filtro_data_fim=filtro_data_fim)
 
 
 @app.route('/relatorios/despesas-pendentes/excel')
 @login_required
 def relatorio_despesas_pendentes_excel():
-    """Exporta relatório de despesas pendentes para Excel."""
+    """Exporta relatório de despesas (vincendas + pagas) para Excel com duas abas."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
     # Filtros
     filtro_tipo = request.args.get('tipo', '')
-    filtro_vencimento = request.args.get('vencimento_ate', '')
-    filtro_situacao = request.args.get('situacao', 'todas')
+    filtro_data_inicio = request.args.get('data_inicio', '')
+    filtro_data_fim = request.args.get('data_fim', '')
 
     hoje = date.today()
 
-    # Query base - despesas não pagas
-    query = """
-        SELECT d.*, i.endereco_completo as imovel_endereco
-        FROM despesas d
-        LEFT JOIN imoveis i ON d.id_imovel = i.id
-        WHERE d.data_pagamento IS NULL
-    """
-    params = []
-
-    if filtro_tipo:
-        query += " AND d.tipo_despesa = ?"
-        params.append(filtro_tipo)
-
-    if filtro_vencimento:
-        query += " AND d.vencimento_previsto <= ?"
-        params.append(filtro_vencimento)
-
-    if filtro_situacao == 'vencidas':
-        query += " AND d.vencimento_previsto < ?"
-        params.append(hoje.strftime('%Y-%m-%d'))
-    elif filtro_situacao == 'a_vencer':
-        query += " AND d.vencimento_previsto >= ?"
-        params.append(hoje.strftime('%Y-%m-%d'))
-
-    query += " ORDER BY d.vencimento_previsto ASC"
-
-    despesas = db.execute_query(query, tuple(params))
-
-    # Criar Excel
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Despesas Pendentes"
-
-    # Estilos
+    # Estilos reutilizáveis
     header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF")
     header_align = Alignment(horizontal="center", vertical="center")
@@ -1926,24 +1924,63 @@ def relatorio_despesas_pendentes_excel():
         bottom=Side(style='thin')
     )
 
+    # Texto do período para o título
+    periodo_txt = ""
+    if filtro_data_inicio and filtro_data_fim:
+        di = datetime.strptime(filtro_data_inicio, '%Y-%m-%d').strftime('%d/%m/%Y')
+        df = datetime.strptime(filtro_data_fim, '%Y-%m-%d').strftime('%d/%m/%Y')
+        periodo_txt = f" - Período: {di} a {df}"
+    elif filtro_data_inicio:
+        di = datetime.strptime(filtro_data_inicio, '%Y-%m-%d').strftime('%d/%m/%Y')
+        periodo_txt = f" - A partir de {di}"
+    elif filtro_data_fim:
+        df = datetime.strptime(filtro_data_fim, '%Y-%m-%d').strftime('%d/%m/%Y')
+        periodo_txt = f" - Até {df}"
+
+    wb = Workbook()
+
+    # ============ ABA 1: DESPESAS VINCENDAS ============
+    ws1 = wb.active
+    ws1.title = "Vincendas"
+
+    query_vincendas = """
+        SELECT d.*, i.endereco_completo as imovel_endereco
+        FROM despesas d
+        LEFT JOIN imoveis i ON d.id_imovel = i.id
+        WHERE d.data_pagamento IS NULL
+    """
+    params_vincendas = []
+
+    if filtro_tipo:
+        query_vincendas += " AND d.tipo_despesa = ?"
+        params_vincendas.append(filtro_tipo)
+    if filtro_data_inicio:
+        query_vincendas += " AND d.vencimento_previsto >= ?"
+        params_vincendas.append(filtro_data_inicio)
+    if filtro_data_fim:
+        query_vincendas += " AND d.vencimento_previsto <= ?"
+        params_vincendas.append(filtro_data_fim)
+
+    query_vincendas += " ORDER BY d.vencimento_previsto ASC"
+    despesas_vincendas = db.execute_query(query_vincendas, tuple(params_vincendas))
+
     # Título
-    ws.merge_cells('A1:G1')
-    ws['A1'] = f"RELATÓRIO DE DESPESAS PENDENTES - Gerado em {hoje.strftime('%d/%m/%Y')}"
-    ws['A1'].font = Font(bold=True, size=14)
-    ws['A1'].alignment = Alignment(horizontal="center")
+    ws1.merge_cells('A1:G1')
+    ws1['A1'] = f"DESPESAS VINCENDAS{periodo_txt}"
+    ws1['A1'].font = Font(bold=True, size=14)
+    ws1['A1'].alignment = Alignment(horizontal="center")
 
     # Cabeçalhos
-    headers = ['ID', 'Imóvel', 'Tipo', 'Descrição', 'Vencimento', 'Valor', 'Situação']
-    for col, header in enumerate(headers, 1):
-        cell = ws.cell(row=3, column=col, value=header)
+    headers_v = ['ID', 'Imóvel', 'Tipo', 'Descrição', 'Vencimento', 'Valor Previsto', 'Situação']
+    for col, header in enumerate(headers_v, 1):
+        cell = ws1.cell(row=3, column=col, value=header)
         cell.fill = header_fill
         cell.font = header_font
         cell.alignment = header_align
         cell.border = border
 
-    # Dados
-    total_valor = 0
-    for row_num, despesa in enumerate(despesas, 4):
+    total_vincendas = 0
+    for row_num, despesa in enumerate(despesas_vincendas, 4):
         venc = despesa.get('vencimento_previsto')
         try:
             venc_date = datetime.strptime(venc, '%Y-%m-%d').date() if venc else None
@@ -1953,7 +1990,7 @@ def relatorio_despesas_pendentes_excel():
 
         venc_formatado = datetime.strptime(venc, '%Y-%m-%d').strftime('%d/%m/%Y') if venc else ""
         valor = despesa.get('valor_previsto', 0) or 0
-        total_valor += valor
+        total_vincendas += valor
 
         dados = [
             despesa.get('id'),
@@ -1964,28 +2001,102 @@ def relatorio_despesas_pendentes_excel():
             valor,
             situacao
         ]
-
         for col, valor_celula in enumerate(dados, 1):
-            cell = ws.cell(row=row_num, column=col, value=valor_celula)
+            cell = ws1.cell(row=row_num, column=col, value=valor_celula)
             cell.border = border
-            if col == 6:  # Valor
+            if col == 6:
                 cell.number_format = 'R$ #,##0.00'
 
-    # Total
-    row_total = len(despesas) + 4
-    ws.cell(row=row_total, column=5, value="TOTAL:").font = Font(bold=True)
-    total_cell = ws.cell(row=row_total, column=6, value=total_valor)
+    row_total = len(despesas_vincendas) + 4
+    ws1.cell(row=row_total, column=5, value="TOTAL:").font = Font(bold=True)
+    total_cell = ws1.cell(row=row_total, column=6, value=total_vincendas)
     total_cell.font = Font(bold=True)
     total_cell.number_format = 'R$ #,##0.00'
 
-    # Ajustar largura das colunas
-    ws.column_dimensions['A'].width = 8
-    ws.column_dimensions['B'].width = 35
-    ws.column_dimensions['C'].width = 15
-    ws.column_dimensions['D'].width = 25
-    ws.column_dimensions['E'].width = 15
-    ws.column_dimensions['F'].width = 15
-    ws.column_dimensions['G'].width = 12
+    ws1.column_dimensions['A'].width = 8
+    ws1.column_dimensions['B'].width = 35
+    ws1.column_dimensions['C'].width = 15
+    ws1.column_dimensions['D'].width = 25
+    ws1.column_dimensions['E'].width = 15
+    ws1.column_dimensions['F'].width = 15
+    ws1.column_dimensions['G'].width = 12
+
+    # ============ ABA 2: DESPESAS PAGAS ============
+    ws2 = wb.create_sheet("Pagas")
+
+    query_pagas = """
+        SELECT d.*, i.endereco_completo as imovel_endereco
+        FROM despesas d
+        LEFT JOIN imoveis i ON d.id_imovel = i.id
+        WHERE d.data_pagamento IS NOT NULL
+    """
+    params_pagas = []
+
+    if filtro_tipo:
+        query_pagas += " AND d.tipo_despesa = ?"
+        params_pagas.append(filtro_tipo)
+    if filtro_data_inicio:
+        query_pagas += " AND d.data_pagamento >= ?"
+        params_pagas.append(filtro_data_inicio)
+    if filtro_data_fim:
+        query_pagas += " AND d.data_pagamento <= ?"
+        params_pagas.append(filtro_data_fim)
+
+    query_pagas += " ORDER BY d.data_pagamento DESC"
+    despesas_pagas = db.execute_query(query_pagas, tuple(params_pagas))
+
+    # Título
+    ws2.merge_cells('A1:G1')
+    ws2['A1'] = f"DESPESAS PAGAS{periodo_txt}"
+    ws2['A1'].font = Font(bold=True, size=14)
+    ws2['A1'].alignment = Alignment(horizontal="center")
+
+    # Cabeçalhos
+    headers_p = ['ID', 'Imóvel', 'Tipo', 'Descrição', 'Data Pagamento', 'Valor Pago', 'Vencimento']
+    for col, header in enumerate(headers_p, 1):
+        cell = ws2.cell(row=3, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_align
+        cell.border = border
+
+    total_pagas = 0
+    for row_num, despesa in enumerate(despesas_pagas, 4):
+        pgto = despesa.get('data_pagamento')
+        pgto_formatado = datetime.strptime(pgto, '%Y-%m-%d').strftime('%d/%m/%Y') if pgto else ""
+        venc = despesa.get('vencimento_previsto')
+        venc_formatado = datetime.strptime(venc, '%Y-%m-%d').strftime('%d/%m/%Y') if venc else ""
+        valor = despesa.get('valor_pago', 0) or despesa.get('valor_previsto', 0) or 0
+        total_pagas += valor
+
+        dados = [
+            despesa.get('id'),
+            despesa.get('imovel_endereco', ''),
+            despesa.get('tipo_despesa', ''),
+            despesa.get('motivo_despesa', ''),
+            pgto_formatado,
+            valor,
+            venc_formatado
+        ]
+        for col, valor_celula in enumerate(dados, 1):
+            cell = ws2.cell(row=row_num, column=col, value=valor_celula)
+            cell.border = border
+            if col == 6:
+                cell.number_format = 'R$ #,##0.00'
+
+    row_total = len(despesas_pagas) + 4
+    ws2.cell(row=row_total, column=5, value="TOTAL:").font = Font(bold=True)
+    total_cell = ws2.cell(row=row_total, column=6, value=total_pagas)
+    total_cell.font = Font(bold=True)
+    total_cell.number_format = 'R$ #,##0.00'
+
+    ws2.column_dimensions['A'].width = 8
+    ws2.column_dimensions['B'].width = 35
+    ws2.column_dimensions['C'].width = 15
+    ws2.column_dimensions['D'].width = 25
+    ws2.column_dimensions['E'].width = 15
+    ws2.column_dimensions['F'].width = 15
+    ws2.column_dimensions['G'].width = 15
 
     # Salvar em memória
     output = io.BytesIO()
@@ -1993,7 +2104,7 @@ def relatorio_despesas_pendentes_excel():
     output.seek(0)
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    nome_arquivo = f'despesas_pendentes_{timestamp}.xlsx'
+    nome_arquivo = f'relatorio_despesas_{timestamp}.xlsx'
 
     return send_file(
         output,
@@ -2624,8 +2735,8 @@ def relatorio_fluxo_caixa_excel():
         dados_por_proprietario[proprietario].append({
             'endereco': imovel['endereco_completo'],
             'receita': receita,
-            'iptu': iptu,
-            'condominio': condominio,
+            'iptu': -iptu if iptu else 0,
+            'condominio': -condominio if condominio else 0,
             'saldo': saldo
         })
 
@@ -2722,10 +2833,14 @@ def relatorio_fluxo_caixa_excel():
             cell_iptu = ws.cell(row=row_num, column=3, value=imovel['iptu'])
             cell_iptu.number_format = money_format
             cell_iptu.border = border
+            if imovel['iptu'] < 0:
+                cell_iptu.font = Font(color="FF0000")
 
             cell_cond = ws.cell(row=row_num, column=4, value=imovel['condominio'])
             cell_cond.number_format = money_format
             cell_cond.border = border
+            if imovel['condominio'] < 0:
+                cell_cond.font = Font(color="FF0000")
 
             cell_saldo = ws.cell(row=row_num, column=5, value=imovel['saldo'])
             cell_saldo.number_format = money_format
@@ -2751,7 +2866,7 @@ def relatorio_fluxo_caixa_excel():
             cell.font = subtotal_font
             cell.fill = subtotal_fill
             cell.border = border
-            if col == 5 and valor < 0:
+            if valor < 0:
                 cell.font = Font(bold=True, color="FF0000")
 
         total_geral_receita += subtotal_receita
@@ -2772,6 +2887,8 @@ def relatorio_fluxo_caixa_excel():
         cell.font = total_font
         cell.fill = total_fill
         cell.border = border
+        if valor < 0:
+            cell.font = Font(bold=True, color="FF0000", size=12)
 
     # Ajustar largura das colunas
     ws.column_dimensions['A'].width = 50

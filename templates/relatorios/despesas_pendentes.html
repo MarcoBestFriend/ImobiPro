@@ -1,13 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}Despesas Pendentes - ImobiPro{% endblock %}
+{% block title %}Relatório de Despesas - ImobiPro{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <h2>Despesas Pendentes</h2>
-            <p>Despesas nao pagas ordenadas por vencimento</p>
+            <h2>Relatório de Despesas</h2>
+            <p>Despesas vincendas e pagas
+                {% if filtro_data_inicio and filtro_data_fim %}
+                    - Período: {{ filtro_data_inicio|formatar_data }} a {{ filtro_data_fim|formatar_data }}
+                {% elif filtro_data_inicio %}
+                    - A partir de {{ filtro_data_inicio|formatar_data }}
+                {% elif filtro_data_fim %}
+                    - Até {{ filtro_data_fim|formatar_data }}
+                {% endif %}
+            </p>
         </div>
         <div style="display: flex; gap: var(--spacing-sm);">
             <a href="{{ url_for('listar_relatorios') }}" class="btn btn-secondary">Voltar</a>
@@ -27,25 +35,21 @@
                 <select name="tipo" class="form-control">
                     <option value="">Todos</option>
                     <option value="IPTU" {% if filtro_tipo == 'IPTU' %}selected{% endif %}>IPTU</option>
-                    <option value="Condominio" {% if filtro_tipo == 'Condominio' %}selected{% endif %}>Condominio</option>
-                    <option value="Manutencao" {% if filtro_tipo == 'Manutencao' %}selected{% endif %}>Manutencao</option>
+                    <option value="Condomínio" {% if filtro_tipo == 'Condomínio' %}selected{% endif %}>Condomínio</option>
+                    <option value="Manutenção" {% if filtro_tipo == 'Manutenção' %}selected{% endif %}>Manutenção</option>
                     <option value="Reforma" {% if filtro_tipo == 'Reforma' %}selected{% endif %}>Reforma</option>
                     <option value="Outros" {% if filtro_tipo == 'Outros' %}selected{% endif %}>Outros</option>
                 </select>
             </div>
 
             <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Vencimento ate</label>
-                <input type="date" name="vencimento_ate" class="form-control" value="{{ filtro_vencimento }}">
+                <label class="form-label">Data Inicial</label>
+                <input type="date" name="data_inicio" class="form-control" value="{{ filtro_data_inicio }}">
             </div>
 
             <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Situacao</label>
-                <select name="situacao" class="form-control">
-                    <option value="todas" {% if filtro_situacao == 'todas' %}selected{% endif %}>Todas</option>
-                    <option value="vencidas" {% if filtro_situacao == 'vencidas' %}selected{% endif %}>Apenas Vencidas</option>
-                    <option value="a_vencer" {% if filtro_situacao == 'a_vencer' %}selected{% endif %}>A Vencer</option>
-                </select>
+                <label class="form-label">Data Final</label>
+                <input type="date" name="data_fim" class="form-control" value="{{ filtro_data_fim }}">
             </div>
 
             <div style="display: flex; gap: var(--spacing-xs);">
@@ -56,50 +60,58 @@
     </form>
 </div>
 
-<!-- Estatisticas -->
+<!-- Estatísticas -->
 <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
     <div class="stat-card">
-        <div class="stat-label">Total de Despesas</div>
-        <div class="stat-value">{{ total_despesas }}</div>
+        <div class="stat-label">Vincendas</div>
+        <div class="stat-value">{{ total_vincendas }}</div>
     </div>
     <div class="stat-card">
-        <div class="stat-label">Valor Total Pendente</div>
-        <div class="stat-value" style="font-size: 1.75rem; color: var(--danger);">{{ total_valor|formatar_moeda }}</div>
+        <div class="stat-label">Valor Vincendas</div>
+        <div class="stat-value" style="font-size: 1.75rem; color: var(--danger);">{{ total_vincendas_valor|formatar_moeda }}</div>
     </div>
     <div class="stat-card">
-        <div class="stat-label">Vencidas</div>
-        <div class="stat-value" style="color: var(--danger);">{{ total_vencidas }}</div>
+        <div class="stat-label">Pagas</div>
+        <div class="stat-value" style="color: var(--success);">{{ total_pagas }}</div>
     </div>
     <div class="stat-card">
-        <div class="stat-label">A Vencer</div>
-        <div class="stat-value" style="color: var(--warning);">{{ total_a_vencer }}</div>
+        <div class="stat-label">Valor Pagas</div>
+        <div class="stat-value" style="font-size: 1.75rem; color: var(--success);">{{ total_pagas_valor|formatar_moeda }}</div>
     </div>
 </div>
 
-<!-- Tabela de Despesas -->
+<!-- ============ SEÇÃO: DESPESAS VINCENDAS ============ -->
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">Lista de Despesas Pendentes</h3>
-        <span class="badge badge-info">{{ despesas|length }} registros</span>
+        <h3 class="card-title">Despesas Vincendas</h3>
+        <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
+            {% if total_vencidas > 0 %}
+                <span class="badge badge-danger">{{ total_vencidas }} vencida{{ 's' if total_vencidas > 1 }}</span>
+            {% endif %}
+            {% if total_a_vencer > 0 %}
+                <span class="badge badge-warning">{{ total_a_vencer }} a vencer</span>
+            {% endif %}
+            <span class="badge badge-info">{{ despesas_vincendas|length }} registros</span>
+        </div>
     </div>
 
-    {% if despesas %}
+    {% if despesas_vincendas %}
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Imovel</th>
+                        <th>Imóvel</th>
                         <th>Tipo</th>
-                        <th>Descricao</th>
+                        <th>Descrição</th>
                         <th>Vencimento</th>
-                        <th>Valor</th>
-                        <th>Situacao</th>
-                        <th>Acoes</th>
+                        <th>Valor Previsto</th>
+                        <th>Situação</th>
+                        <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for despesa in despesas %}
+                    {% for despesa in despesas_vincendas %}
                     <tr>
                         <td style="font-family: monospace; color: var(--text-muted);">#{{ despesa.id }}</td>
                         <td style="max-width: 200px;">
@@ -108,7 +120,7 @@
                             </div>
                         </td>
                         <td>
-                            <span class="badge badge-{% if despesa.tipo_despesa == 'IPTU' %}info{% elif despesa.tipo_despesa == 'Condominio' %}warning{% else %}secondary{% endif %}">
+                            <span class="badge badge-{% if despesa.tipo_despesa == 'IPTU' %}info{% elif despesa.tipo_despesa == 'Condomínio' %}warning{% else %}secondary{% endif %}">
                                 {{ despesa.tipo_despesa }}
                             </span>
                         </td>
@@ -147,15 +159,84 @@
         </div>
     {% else %}
         <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-muted);">
-            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">&#128077;</div>
+            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">👍</div>
             <h3 style="color: var(--text-secondary); margin-bottom: var(--spacing-sm);">
-                Nenhuma despesa pendente!
+                Nenhuma despesa vincenda!
             </h3>
             <p>
-                {% if filtro_tipo or filtro_vencimento or filtro_situacao != 'todas' %}
+                {% if filtro_tipo or filtro_data_inicio or filtro_data_fim %}
                     Nenhum resultado para os filtros aplicados.
                 {% else %}
-                    Todas as despesas estao pagas.
+                    Todas as despesas estão pagas.
+                {% endif %}
+            </p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- ============ SEÇÃO: DESPESAS PAGAS ============ -->
+<div class="card" style="margin-top: var(--spacing-md);">
+    <div class="card-header">
+        <h3 class="card-title">Despesas Pagas</h3>
+        <span class="badge badge-success">{{ despesas_pagas|length }} registros</span>
+    </div>
+
+    {% if despesas_pagas %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Imóvel</th>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                        <th>Data Pagamento</th>
+                        <th>Valor Pago</th>
+                        <th>Vencimento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for despesa in despesas_pagas %}
+                    <tr>
+                        <td style="font-family: monospace; color: var(--text-muted);">#{{ despesa.id }}</td>
+                        <td style="max-width: 200px;">
+                            <div style="color: var(--text-primary); font-weight: 500;">
+                                {{ despesa.imovel_endereco|truncate(30) if despesa.imovel_endereco else '-' }}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-{% if despesa.tipo_despesa == 'IPTU' %}info{% elif despesa.tipo_despesa == 'Condomínio' %}warning{% else %}secondary{% endif %}">
+                                {{ despesa.tipo_despesa }}
+                            </span>
+                        </td>
+                        <td style="color: var(--text-secondary); max-width: 150px;">
+                            {{ despesa.motivo_despesa|truncate(25) if despesa.motivo_despesa else '-' }}
+                        </td>
+                        <td style="color: var(--text-secondary);">
+                            {{ despesa.data_pagamento|formatar_data }}
+                        </td>
+                        <td style="color: var(--success); font-weight: 600;">
+                            {{ (despesa.valor_pago if despesa.valor_pago else despesa.valor_previsto)|formatar_moeda }}
+                        </td>
+                        <td style="color: var(--text-muted);">
+                            {{ despesa.vencimento_previsto|formatar_data }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: var(--spacing-xl); color: var(--text-muted);">
+            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">📭</div>
+            <h3 style="color: var(--text-secondary); margin-bottom: var(--spacing-sm);">
+                Nenhuma despesa paga encontrada
+            </h3>
+            <p>
+                {% if filtro_tipo or filtro_data_inicio or filtro_data_fim %}
+                    Nenhum resultado para os filtros aplicados.
+                {% else %}
+                    Nenhuma despesa foi paga ainda.
                 {% endif %}
             </p>
         </div>

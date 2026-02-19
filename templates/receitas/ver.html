@@ -94,7 +94,11 @@
                         {% if receita.desconto_multa < 0 %}Desconto{% else %}Multa/Juros{% endif %}
                     </div>
                 </div>
-                <div style="color: {{ 'var(--danger)' if receita.desconto_multa > 0 else 'var(--success)' }}; font-weight: 700; font-size: 1.25rem;">
+                {% if receita.desconto_multa > 0 %}
+                <div style="color: var(--danger); font-weight: 700; font-size: 1.25rem;">
+                {% else %}
+                <div style="color: var(--success); font-weight: 700; font-size: 1.25rem;">
+                {% endif %}
                     {{ receita.desconto_multa|formatar_moeda }}
                 </div>
             </div>
@@ -222,7 +226,11 @@
             </label>
             {% if receita.valor_recebido %}
                 {% set diferenca = receita.valor_recebido - receita.valor_total_devido %}
-                <div style="color: {{ 'var(--success)' if diferenca >= 0 else 'var(--danger)' }}; font-weight: 600; font-size: 1.25rem;">
+                {% if diferenca >= 0 %}
+                <div style="color: var(--success); font-weight: 600; font-size: 1.25rem;">
+                {% else %}
+                <div style="color: var(--danger); font-weight: 600; font-size: 1.25rem;">
+                {% endif %}
                     {% if diferenca == 0 %}
                         Valor exato
                     {% elif diferenca > 0 %}

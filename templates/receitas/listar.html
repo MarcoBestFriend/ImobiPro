@@ -100,7 +100,7 @@
                         <th>Imóvel</th>
                         <th>Inquilino</th>
                         <th>Mês Ref.</th>
-                        <th>Valor Total</th>
+                        <th>Valor</th>
                         <th>Vencimento</th>
                         <th>Status</th>
                         <th>Ações</th>
@@ -115,12 +115,16 @@
                         </td>
                         <td style="color: var(--text-secondary);">{{ receita.inquilino_nome or '-' }}</td>
                         <td style="color: var(--text-secondary);">{{ receita.mes_referencia|formatar_data }}</td>
-                        <td style="color: var(--success); font-weight: 600;">
-                            {{ receita.valor_total_devido|formatar_moeda }}
-                            {% if receita.valor_recebido %}
-                            <div style="font-size: 0.75rem; color: var(--text-muted);">
-                                Recebido: {{ receita.valor_recebido|formatar_moeda }}
-                            </div>
+                        <td style="font-weight: 600;">
+                            {% if receita.status == 'Recebido' and receita.valor_recebido %}
+                                <span style="color: var(--success);">{{ receita.valor_recebido|formatar_moeda }}</span>
+                                {% if receita.valor_recebido != receita.valor_total_devido %}
+                                <div style="font-size: 0.75rem; color: var(--text-muted); text-decoration: line-through;">
+                                    Devido: {{ receita.valor_total_devido|formatar_moeda }}
+                                </div>
+                                {% endif %}
+                            {% else %}
+                                <span style="color: var(--warning);">{{ receita.valor_total_devido|formatar_moeda }}</span>
                             {% endif %}
                         </td>
                         <td style="color: var(--text-secondary);">{{ receita.vencimento_previsto|formatar_data }}</td>
@@ -143,12 +147,11 @@
                         <td>
                             <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap;">
                                 {% if receita.status == 'Pendente' or receita.status == 'Atrasado' %}
-                                <form method="POST" action="{{ url_for('receber_receita', id=receita.id) }}" style="display: inline;">
-                                    <button type="submit" class="btn btn-success" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;"
-                                            onclick="return confirm('Confirma o recebimento desta receita?')">
-                                        ✓ Receber
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-success" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;"
+                                        data-id="{{ receita.id }}" data-valor="{{ receita.valor_total_devido or 0 }}"
+                                        onclick="abrirModalReceber(this.dataset.id, this.dataset.valor)">
+                                    ✓ Receber
+                                </button>
                                 {% endif %}
                                 <a href="{{ url_for('ver_receita', id=receita.id) }}" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
                                     👁️ Ver
@@ -188,4 +191,48 @@
         </div>
     {% endif %}
 </div>
+
+<!-- Modal Recebimento -->
+<div id="modal-receber" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="card" style="max-width: 400px; width: 90%; margin: 0;">
+        <div class="card-header">
+            <h3 class="card-title">💰 Confirmar Recebimento</h3>
+        </div>
+        <form id="form-receber" method="POST" action="">
+            <div style="padding: var(--spacing-md);">
+                <p style="color: var(--text-secondary); margin-bottom: var(--spacing-md);">
+                    Informe o valor efetivamente recebido.
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Valor Devido</label>
+                    <input type="text" id="receber-valor-devido" class="form-control" readonly
+                           style="color: var(--text-muted); background: var(--bg-secondary);">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Valor Recebido *</label>
+                    <input type="number" name="valor_recebido" id="receber-valor" class="form-control"
+                           step="0.01" min="0" required>
+                </div>
+            </div>
+            <div style="padding: var(--spacing-md); border-top: 1px solid var(--border-color); display: flex; gap: var(--spacing-sm); justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-receber').style.display='none'">
+                    Cancelar
+                </button>
+                <button type="submit" class="btn btn-success">
+                    Confirmar Recebimento
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function abrirModalReceber(id, valorDevido) {
+    document.getElementById('form-receber').action = '/receitas/' + id + '/receber';
+    document.getElementById('receber-valor-devido').value = 'R$ ' + valorDevido.toFixed(2).replace('.', ',');
+    document.getElementById('receber-valor').value = valorDevido.toFixed(2);
+    document.getElementById('modal-receber').style.display = 'flex';
+    document.getElementById('receber-valor').select();
+}
+</script>
 {% endblock %}

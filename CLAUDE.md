@@ -3,7 +3,7 @@
 ## 📋 Informações Rápidas do Projeto
 
 - **Nome**: ImobiPro
-- **Versão**: 1.6.0 (Consulta detalhada de pessoas, contratos e receitas)
+- **Versão**: 1.7.0 (IPTU mensal, relatório de despesas completo, recebimento com valor)
 - **Objetivo**: Sistema completo para gestão de imóveis, contratos, despesas e receitas de aluguéis
 - **Stack**: Python 3.10+, Flask, SQLite, Jinja2
 - **Ambiente**: Ubuntu 24.04, VSCode
@@ -381,7 +381,8 @@ GET  /despesas/<id>/editar          → Form editar
 POST /despesas/<id>/editar          → Processar
 POST /despesas/<id>/excluir         → Excluir
 POST /despesas/<id>/pagar           → Marcar como paga (atalho)
-POST /despesas/gerar-iptu-anual     → Gera IPTU para todos imóveis
+POST /despesas/gerar-iptu-anual     → Gera IPTU anual (imóveis com pagamento anual)
+POST /despesas/gerar-iptu-mensal    → Gera IPTU mensal (imóveis com pagamento mensal, valor ÷ 12)
 POST /despesas/gerar-condominio-mensal → Gera condomínio do mês
 ```
 
@@ -394,7 +395,7 @@ GET  /receitas/<id>                 → Consulta detalhada (composição valor, 
 GET  /receitas/<id>/editar          → Form editar
 POST /receitas/<id>/editar          → Processar
 POST /receitas/<id>/excluir         → Excluir
-POST /receitas/<id>/receber         → Marcar como recebida (atalho)
+POST /receitas/<id>/receber         → Marcar como recebida (modal com valor recebido)
 ```
 
 ### Dados (Importar/Exportar/Backup)
@@ -409,8 +410,8 @@ POST /dados/executar-backup         → Criar backup na pasta backups/
 ### Relatórios
 ```
 GET  /relatorios                              → Página de relatórios
-GET  /relatorios/despesas-pendentes           → Relatório de despesas pendentes (HTML)
-GET  /relatorios/despesas-pendentes/excel     → Exportar despesas para Excel
+GET  /relatorios/despesas-pendentes           → Relatório de despesas (vincendas + pagas, HTML)
+GET  /relatorios/despesas-pendentes/excel     → Exportar despesas para Excel (2 abas)
 GET  /relatorios/imoveis-desocupados          → Relatório de imóveis desocupados (HTML)
 GET  /relatorios/imoveis-desocupados/excel    → Exportar imóveis desocupados para Excel
 GET  /relatorios/cobrancas-mes/excel          → Relatório de cobranças do mês (Excel)
@@ -452,7 +453,7 @@ GET  /relatorios/fluxo-caixa/excel            → Fluxo de caixa por proprietár
 
 ---
 
-## ✅ Estado Atual (10/02/2026)
+## ✅ Estado Atual (18/02/2026)
 
 ### Dados Reais Importados
 - 29 imóveis (dados reais do arquivo imoveis2026.xlsx)
@@ -465,8 +466,9 @@ GET  /relatorios/fluxo-caixa/excel            → Fluxo de caixa por proprietár
 - ✅ CRUD pessoas (listar, novo, editar, excluir, **visualizar**) - consulta com contratos relacionados
 - ✅ CRUD contratos (listar, novo, editar, excluir, **visualizar**) - consulta com receitas, imóvel, inquilino, fiador
 - ✅ CRUD despesas (listar, novo, editar, excluir, pagar) - **status "Atrasada" automático**
-- ✅ CRUD receitas (listar, novo, editar, excluir, receber, **visualizar**) - consulta com composição de valor
-- ✅ **Lançamento automático IPTU anual** (data de vencimento customizada via modal)
+- ✅ CRUD receitas (listar, novo, editar, excluir, receber, **visualizar**) - recebimento com valor via modal
+- ✅ **Lançamento automático IPTU anual** (apenas imóveis com pagamento anual)
+- ✅ **Lançamento automático IPTU mensal** (imóveis com pagamento mensal, valor ÷ 12)
 - ✅ **Lançamento automático Condomínio mensal** (usa condominio_total)
 - ✅ **Atualização em lote de condomínios** (inquilino e total separados)
 - ✅ **Separação de condomínio**: inquilino (ordinárias) vs total (ordinárias + extraordinárias)
@@ -476,7 +478,7 @@ GET  /relatorios/fluxo-caixa/excel            → Fluxo de caixa por proprietár
 - ✅ **Backup automático diário** (02:00, mantém últimos 7)
 - ✅ **Sistema de login** com usuários no banco de dados
 - ✅ **Administração de usuários** (criar, editar, excluir, ativar/desativar)
-- ✅ **Relatório de Despesas Pendentes** com exportação Excel
+- ✅ **Relatório de Despesas** (vincendas + pagas, filtro por período, Excel com 2 abas)
 - ✅ **Relatório de Imóveis Desocupados** com exportação Excel
 - ✅ **Relatório de Cobranças do Mês** (usa condominio_inquilino)
 - ✅ **Relatório de Contratos** (Excel direto)
@@ -520,11 +522,21 @@ GET  /relatorios/fluxo-caixa/excel            → Fluxo de caixa por proprietár
 ### Gerar IPTU Anual
 - **Rota**: `POST /despesas/gerar-iptu-anual`
 - **Parâmetro**: `data_vencimento` (informada via modal antes de gerar)
-- **O que faz**: Cria despesas de IPTU para todos os imóveis com `valor_iptu_anual > 0`
+- **O que faz**: Cria despesas de IPTU para imóveis com `forma_pagamento_iptu = 'Anual'` e `valor_iptu_anual > 0`
 - **Vencimento**: Data informada pelo usuário no modal
 - **Proteção**: Não cria duplicatas (verifica se já existe IPTU para o ano)
 - **Tipo despesa**: "IPTU"
 - **Descrição**: "IPTU Anual {ano}"
+
+### Gerar IPTU Mensal
+- **Rota**: `POST /despesas/gerar-iptu-mensal`
+- **Parâmetro**: `data_vencimento` (informada via modal antes de gerar)
+- **O que faz**: Cria despesas de IPTU para imóveis com `forma_pagamento_iptu = 'Mensal'` e `valor_iptu_anual > 0`
+- **Valor**: `valor_iptu_anual ÷ 12` (calculado automaticamente)
+- **Vencimento**: Data informada pelo usuário no modal
+- **Proteção**: Não cria duplicatas (verifica se já existe IPTU para o mês)
+- **Tipo despesa**: "IPTU"
+- **Descrição**: "IPTU Mensal {mês}/{ano}"
 
 ### Gerar Condomínio Mensal
 - **Rota**: `POST /despesas/gerar-condominio-mensal`
@@ -559,10 +571,15 @@ GET  /relatorios/fluxo-caixa/excel            → Fluxo de caixa por proprietár
 - **Filtro opcional**: `?status=Ativo` (ou Prorrogado, Encerrado, Rescindido)
 - **Ordenação**: Por status e endereço
 
-### Relatório de Despesas Pendentes
-- **Rota**: `GET /relatorios/despesas-pendentes/excel`
-- **Colunas**: ID, Imóvel, Tipo, Descrição, Vencimento, Valor, Situação
-- **Filtros**: Tipo, Vencimento até, Situação (vencidas/a vencer)
+### Relatório de Despesas (Vincendas + Pagas)
+- **Rota HTML**: `GET /relatorios/despesas-pendentes`
+- **Rota Excel**: `GET /relatorios/despesas-pendentes/excel`
+- **Filtros**: Tipo de despesa, Data inicial, Data final
+- **Seção Vincendas**: Despesas não pagas (filtro por vencimento)
+  - Colunas: ID, Imóvel, Tipo, Descrição, Vencimento, Valor Previsto, Situação
+- **Seção Pagas**: Despesas já pagas (filtro por data de pagamento)
+  - Colunas: ID, Imóvel, Tipo, Descrição, Data Pagamento, Valor Pago, Vencimento
+- **Excel**: Duas abas separadas ("Vincendas" e "Pagas")
 
 ### Relatório de Imóveis Desocupados
 - **Rota**: `GET /relatorios/imoveis-desocupados/excel`

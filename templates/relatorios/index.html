@@ -20,16 +20,34 @@
         </div>
     </a>
     
-    <a href="{{ url_for('relatorio_despesas_pendentes') }}" class="card" style="cursor: pointer; text-decoration: none; border: 2px solid var(--warning);">
+    <div class="card" style="border: 2px solid var(--warning);">
         <div style="text-align: center; padding: var(--spacing-lg);">
             <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">💸</div>
-            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-sm);">Despesas Pendentes</h3>
+            <h3 style="color: var(--text-primary); margin-bottom: var(--spacing-sm);">Relatório de Despesas</h3>
             <p style="color: var(--text-muted); margin-bottom: var(--spacing-md);">
-                Despesas nao pagas ordenadas por vencimento, com filtros e exportacao Excel
+                Despesas vincendas e pagas com filtro por período
             </p>
-            <span class="btn btn-warning">Ver Relatorio</span>
+            <form id="form-despesas" method="GET" action="{{ url_for('relatorio_despesas_pendentes') }}" style="display: flex; flex-direction: column; gap: var(--spacing-sm); align-items: center;">
+                <div style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap; justify-content: center;">
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--text-muted);">Data Inicial</label>
+                        <input type="date" name="data_inicio" class="form-control" style="width: 150px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.8rem; color: var(--text-muted);">Data Final</label>
+                        <input type="date" name="data_fim" class="form-control" style="width: 150px;">
+                    </div>
+                </div>
+                <div style="display: flex; gap: var(--spacing-sm);">
+                    <button type="submit" class="btn btn-warning">Ver Relatório</button>
+                    <button type="button" class="btn btn-success"
+                            data-url-excel="{{ url_for('relatorio_despesas_pendentes_excel') }}"
+                            data-url-html="{{ url_for('relatorio_despesas_pendentes') }}"
+                            onclick="var f = document.getElementById('form-despesas'); f.action = this.dataset.urlExcel; f.submit(); f.action = this.dataset.urlHtml;">Exportar Excel</button>
+                </div>
+            </form>
         </div>
-    </a>
+    </div>
     
     <a href="{{ url_for('relatorio_cobrancas_mes_excel') }}" class="card" style="cursor: pointer; text-decoration: none; border: 2px solid var(--success);">
         <div style="text-align: center; padding: var(--spacing-lg);">
