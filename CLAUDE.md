@@ -3,7 +3,7 @@
 ## 📋 Informações Rápidas do Projeto
 
 - **Nome**: ImobiPro
-- **Versão**: 1.7.0 (IPTU mensal, relatório de despesas completo, recebimento com valor)
+- **Versão**: 1.8.0 (tabela proprietários, receitas sem contrato: empréstimos/outros)
 - **Objetivo**: Sistema completo para gestão de imóveis, contratos, despesas e receitas de aluguéis
 - **Stack**: Python 3.10+, Flask, SQLite, Jinja2
 - **Ambiente**: Ubuntu 24.04, VSCode
@@ -209,14 +209,29 @@ ImobiPro/
 
 ---
 
+### Tabela: proprietarios
+
+| Campo | Tipo | Descrição | Obrigatório |
+|-------|------|-----------|-------------|
+| id | INTEGER | Chave primária | Sim |
+| nome | TEXT | Nome do sócio/proprietário (único) | Sim |
+| data_cadastro | TIMESTAMP | Auto | Sim |
+
+**Valores cadastrados**: Marco, Beatriz, Gilma, Antonio, Marco e Bia
+
+---
+
 ### Tabela: receitas
 
 | Campo | Tipo | Descrição | Obrigatório |
 |-------|------|-----------|-------------|
 | id | INTEGER | Chave primária | Sim |
-| id_contrato | INTEGER | FK → contratos.id | Sim |
+| id_contrato | INTEGER | FK → contratos.id (opcional) | Não |
+| id_imovel | INTEGER | FK → imoveis.id (opcional, sem contrato) | Não |
+| id_proprietario | INTEGER | FK → proprietarios.id (obrigatório sem contrato) | Cond. |
+| tipo_receita | TEXT | "Aluguel", "Empréstimo" ou "Outros" | Sim |
 | mes_referencia | DATE | Mês competência | Sim |
-| aluguel_devido | REAL | Valor aluguel | Sim |
+| aluguel_devido | REAL | Valor aluguel (ou valor principal) | Sim |
 | condominio_devido | REAL | Valor condomínio | Não |
 | iptu_devido | REAL | Valor IPTU | Não |
 | desconto_multa | REAL | Desconto(-)/Multa(+) | Não |
@@ -230,8 +245,11 @@ ImobiPro/
 
 **Regras**:
 - Valores `status`: "Pendente", "Recebido", "Atrasado", "Cancelado"
-- `valor_total_devido` = aluguel + condomínio + iptu + desconto_multa (trigger)
-- UNIQUE(id_contrato, mes_referencia)
+- Valores `tipo_receita`: "Aluguel", "Empréstimo", "Outros"
+- `valor_total_devido` = aluguel + condomínio + iptu + desconto_multa (trigger AFTER)
+- Se `tipo_receita = 'Aluguel'` → `id_contrato` obrigatório
+- Se `tipo_receita != 'Aluguel'` → `id_proprietario` obrigatório, `id_contrato = NULL`
+- UNIQUE(id_contrato, mes_referencia) — NULLs são sempre distintos em SQLite
 
 ---
 
@@ -482,7 +500,9 @@ GET  /relatorios/fluxo-caixa/excel            → Fluxo de caixa por proprietár
 - ✅ **Relatório de Imóveis Desocupados** com exportação Excel
 - ✅ **Relatório de Cobranças do Mês** (usa condominio_inquilino)
 - ✅ **Relatório de Contratos** (Excel direto)
-- ✅ **Relatório de Fluxo de Caixa** por proprietário (receitas/despesas pagas)
+- ✅ **Relatório de Fluxo de Caixa** por proprietário (receitas/despesas pagas, inclui empréstimos)
+- ✅ **Tabela de proprietários** (Marco, Beatriz, Gilma, Antonio, Marco e Bia)
+- ✅ **Receitas sem contrato** (tipo: Empréstimo / Outros, vinculadas ao proprietário)
 - ✅ **Botões de cadastro rápido** de inquilino/fiador no formulário de contratos
 
 ### Planejado (NÃO FAZER SEM PERMISSÃO)

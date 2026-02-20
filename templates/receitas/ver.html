@@ -116,36 +116,32 @@
         </div>
     </div>
 
-    <!-- Imóvel e Inquilino -->
+    <!-- Imóvel, Inquilino ou Proprietário -->
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">🏠 Imóvel e Inquilino</h3>
+            <h3 class="card-title">🏠 Origem da Receita</h3>
+            {% if receita.tipo_receita %}
+            <span class="badge badge-info" style="font-size: 0.8rem;">{{ receita.tipo_receita }}</span>
+            {% endif %}
         </div>
         <div style="display: grid; gap: var(--spacing-md);">
+
+            {% if contrato %}
+            {# Receita de Aluguel: exibe imóvel, inquilino e contrato #}
             {% if imovel %}
             <div>
-                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
-                    Imóvel
-                </label>
-                <div style="color: var(--text-primary); font-weight: 600;">
-                    {{ imovel.endereco_completo }}
-                </div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">Imóvel</label>
+                <div style="color: var(--text-primary); font-weight: 600;">{{ imovel.endereco_completo }}</div>
                 {% if imovel.proprietario %}
-                <div style="color: var(--text-muted); font-size: 0.875rem;">
-                    Proprietário: {{ imovel.proprietario }}
-                </div>
+                <div style="color: var(--text-muted); font-size: 0.875rem;">Proprietário: {{ imovel.proprietario }}</div>
                 {% endif %}
             </div>
             {% endif %}
 
             {% if inquilino %}
             <div>
-                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
-                    Inquilino
-                </label>
-                <div style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem;">
-                    {{ inquilino.nome_completo }}
-                </div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">Inquilino</label>
+                <div style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem;">{{ inquilino.nome_completo }}</div>
                 {% if inquilino.telefone %}
                 <div style="margin-top: 0.25rem;">
                     <a href="tel:{{ inquilino.telefone }}" style="color: var(--accent);">{{ inquilino.telefone }}</a>
@@ -154,16 +150,11 @@
             </div>
             {% endif %}
 
-            {% if contrato %}
             <div>
-                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
-                    Contrato
-                </label>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">Contrato</label>
                 <div style="color: var(--text-primary);">
                     #{{ contrato.id }} -
-                    <span class="badge badge-{{ contrato.status_contrato|status_badge }}">
-                        {{ contrato.status_contrato }}
-                    </span>
+                    <span class="badge badge-{{ contrato.status_contrato|status_badge }}">{{ contrato.status_contrato }}</span>
                 </div>
                 <div style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
                     Aluguel: {{ contrato.valor_aluguel|formatar_moeda }} | Dia venc.: {{ contrato.dia_vencimento }}
@@ -171,16 +162,34 @@
             </div>
 
             <div style="display: flex; gap: var(--spacing-sm);">
-                <a href="{{ url_for('ver_contrato', id=contrato.id) }}" class="btn btn-secondary" style="font-size: 0.875rem;">
-                    Ver Contrato →
-                </a>
+                <a href="{{ url_for('ver_contrato', id=contrato.id) }}" class="btn btn-secondary" style="font-size: 0.875rem;">Ver Contrato →</a>
                 {% if imovel %}
-                <a href="{{ url_for('ver_imovel', id=imovel.id) }}" class="btn btn-secondary" style="font-size: 0.875rem;">
-                    Ver Imóvel →
-                </a>
+                <a href="{{ url_for('ver_imovel', id=imovel.id) }}" class="btn btn-secondary" style="font-size: 0.875rem;">Ver Imóvel →</a>
                 {% endif %}
             </div>
+
+            {% else %}
+            {# Receita sem contrato: exibe proprietário e imóvel (se houver) #}
+            {% if proprietario %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">Proprietário / Sócio</label>
+                <div style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem;">{{ proprietario.nome }}</div>
+            </div>
             {% endif %}
+
+            {% if imovel %}
+            <div>
+                <label style="color: var(--text-muted); font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">Imóvel Relacionado</label>
+                <div style="color: var(--text-primary); font-weight: 600;">{{ imovel.endereco_completo }}</div>
+                <div style="margin-top: 0.25rem;">
+                    <a href="{{ url_for('ver_imovel', id=imovel.id) }}" class="btn btn-secondary" style="font-size: 0.875rem;">Ver Imóvel →</a>
+                </div>
+            </div>
+            {% else %}
+            <div style="color: var(--text-muted); font-size: 0.875rem;">Sem imóvel vinculado.</div>
+            {% endif %}
+            {% endif %}
+
         </div>
     </div>
 </div>

@@ -199,46 +199,64 @@ CREATE TABLE IF NOT EXISTS despesas (
 );
 
 -- ============================================================================
+-- TABELA: proprietarios
+-- Sócios/proprietários para vínculo com receitas não-contratuais
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS proprietarios (
+    id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL UNIQUE,
+    data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+INSERT OR IGNORE INTO proprietarios (nome) VALUES
+    ('Marco'), ('Beatriz'), ('Gilma'), ('Antonio'), ('Marco e Bia');
+
+-- ============================================================================
 -- TABELA: receitas
 -- Campos baseados na análise da aba "receitas"
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS receitas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    
-    -- Relacionamento
-    id_contrato INTEGER NOT NULL,
-    
+
+    -- Relacionamento (contrato é opcional para receitas não-contratuais)
+    id_contrato     INTEGER,                   -- FK → contratos.id (opcional)
+    id_imovel       INTEGER,                   -- FK → imoveis.id (opcional, sem contrato)
+    id_proprietario INTEGER,                   -- FK → proprietarios.id (obrigatório sem contrato)
+    tipo_receita    TEXT NOT NULL DEFAULT 'Aluguel', -- Aluguel | Empréstimo | Outros
+
     -- Referência temporal
     mes_referencia DATE NOT NULL,              -- MesReferencia
-    
+
     -- Valores devidos (componentes)
-    aluguel_devido REAL NOT NULL,              -- AluguelDevido
-    condominio_devido REAL DEFAULT 0,          -- CondominioDevido
-    iptu_devido REAL DEFAULT 0,                -- IPTUDevido
-    desconto_multa REAL DEFAULT 0,             -- Desconto(-) Multa(+)
-    valor_total_devido REAL NOT NULL,          -- ValorTotalDevido (calculado)
-    
+    aluguel_devido      REAL NOT NULL,         -- AluguelDevido (ou valor principal)
+    condominio_devido   REAL DEFAULT 0,        -- CondominioDevido
+    iptu_devido         REAL DEFAULT 0,        -- IPTUDevido
+    desconto_multa      REAL DEFAULT 0,        -- Desconto(-) Multa(+)
+    valor_total_devido  REAL NOT NULL,         -- ValorTotalDevido (calculado)
+
     -- Datas
     vencimento_previsto DATE NOT NULL,         -- VencimentoPrevisto
-    data_recebimento DATE,                     -- DataRecebimento
-    
+    data_recebimento    DATE,                  -- DataRecebimento
+
     -- Valores recebidos
     valor_recebido REAL,                       -- ValorRecebido
-    
+
     -- Status
-    status TEXT NOT NULL DEFAULT 'Pendente',   -- Status: Pendente, Recebido, Atrasado
+    status      TEXT NOT NULL DEFAULT 'Pendente', -- Pendente, Recebido, Atrasado, Cancelado
     observacoes TEXT,                          -- Observacoes
-    
+
     -- Controle
     data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
+
     -- Chaves estrangeiras
-    FOREIGN KEY (id_contrato) REFERENCES contratos(id) ON DELETE CASCADE,
-    
+    FOREIGN KEY (id_contrato)     REFERENCES contratos(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_imovel)       REFERENCES imoveis(id),
+    FOREIGN KEY (id_proprietario) REFERENCES proprietarios(id),
+
     -- Validações
-    CHECK(status IN ('Pendente', 'Recebido', 'Atrasado', 'Cancelado')),
-    
-    -- Garantir unicidade por contrato/mês
+    CHECK(status       IN ('Pendente', 'Recebido', 'Atrasado', 'Cancelado')),
+    CHECK(tipo_receita IN ('Aluguel', 'Empréstimo', 'Outros')),
+
+    -- Unicidade por contrato/mês (NULLs são sempre distintos em SQLite)
     UNIQUE(id_contrato, mes_referencia)
 );
 
@@ -303,18 +321,26 @@ END;
 
 -- Trigger: Calcular valor_total_devido em receitas (usa COALESCE para tratar NULL)
 CREATE TRIGGER IF NOT EXISTS calcular_total_receita_insert
-BEFORE INSERT ON receitas
+AFTER INSERT ON receitas
 BEGIN
     UPDATE receitas
-    SET valor_total_devido = COALESCE(NEW.aluguel_devido, 0) + COALESCE(NEW.condominio_devido, 0) + COALESCE(NEW.iptu_devido, 0) + COALESCE(NEW.desconto_multa, 0)
+    SET valor_total_devido =
+        COALESCE(NEW.aluguel_devido, 0) +
+        COALESCE(NEW.condominio_devido, 0) +
+        COALESCE(NEW.iptu_devido, 0) +
+        COALESCE(NEW.desconto_multa, 0)
     WHERE id = NEW.id;
 END;
 
 CREATE TRIGGER IF NOT EXISTS calcular_total_receita_update
-BEFORE UPDATE ON receitas
+AFTER UPDATE ON receitas
 BEGIN
     UPDATE receitas
-    SET valor_total_devido = COALESCE(NEW.aluguel_devido, 0) + COALESCE(NEW.condominio_devido, 0) + COALESCE(NEW.iptu_devido, 0) + COALESCE(NEW.desconto_multa, 0)
+    SET valor_total_devido =
+        COALESCE(NEW.aluguel_devido, 0) +
+        COALESCE(NEW.condominio_devido, 0) +
+        COALESCE(NEW.iptu_devido, 0) +
+        COALESCE(NEW.desconto_multa, 0)
     WHERE id = NEW.id;
 END;
 
@@ -384,27 +410,30 @@ JOIN imoveis i ON d.id_imovel = i.id
 WHERE d.data_pagamento IS NULL
 ORDER BY d.vencimento_previsto;
 
--- View: Receitas pendentes com detalhes
+-- View: Receitas pendentes com detalhes (suporta receitas sem contrato)
 CREATE VIEW IF NOT EXISTS vw_receitas_pendentes AS
-SELECT 
+SELECT
     r.id,
     r.id_contrato,
-    c.id_imovel,
-    i.endereco_completo as imovel,
-    p.nome_completo as inquilino,
+    r.tipo_receita,
+    COALESCE(c.id_imovel, r.id_imovel)                          AS id_imovel,
+    COALESCE(i_c.endereco_completo, i_r.endereco_completo, '-') AS imovel,
+    COALESCE(p.nome_completo, pr.nome, '-')                     AS inquilino,
     r.mes_referencia,
     r.valor_total_devido,
     r.vencimento_previsto,
     r.status,
-    CASE 
+    CASE
         WHEN r.vencimento_previsto < DATE('now') AND r.status = 'Pendente' THEN 'Atrasado'
         WHEN r.vencimento_previsto = DATE('now') THEN 'Vence Hoje'
         ELSE 'A Receber'
-    END as situacao
+    END AS situacao
 FROM receitas r
-JOIN contratos c ON r.id_contrato = c.id
-JOIN imoveis i ON c.id_imovel = i.id
-JOIN pessoas p ON c.id_inquilino = p.id
+LEFT JOIN contratos     c   ON r.id_contrato     = c.id
+LEFT JOIN imoveis       i_c ON c.id_imovel       = i_c.id
+LEFT JOIN imoveis       i_r ON r.id_imovel       = i_r.id
+LEFT JOIN pessoas       p   ON c.id_inquilino    = p.id
+LEFT JOIN proprietarios pr  ON r.id_proprietario = pr.id
 WHERE r.status IN ('Pendente', 'Atrasado')
 ORDER BY r.vencimento_previsto DESC;
 
