@@ -128,7 +128,7 @@
                             {% endif %}
                         </td>
                         <td style="color: var(--text-secondary);">{{ receita.inquilino_nome or '-' }}</td>
-                        <td style="color: var(--text-secondary);">{{ receita.mes_referencia|formatar_data }}</td>
+                        <td style="color: var(--text-secondary);">{{ receita.mes_referencia|formatar_mes }}</td>
                         <td style="font-weight: 600;">
                             {% if receita.status == 'Recebido' and receita.valor_recebido %}
                                 <span style="color: var(--success);">{{ receita.valor_recebido|formatar_moeda }}</span>
@@ -162,8 +162,13 @@
                             <div style="display: flex; gap: var(--spacing-xs); flex-wrap: wrap;">
                                 {% if receita.status == 'Pendente' or receita.status == 'Atrasado' %}
                                 <button type="button" class="btn btn-success" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;"
-                                        data-id="{{ receita.id }}" data-valor="{{ receita.valor_total_devido or 0 }}"
-                                        onclick="abrirModalReceber(this.dataset.id, this.dataset.valor)">
+                                        data-id="{{ receita.id }}"
+                                        data-aluguel="{{ receita.aluguel_devido or 0 }}"
+                                        data-iptu="{{ receita.iptu_devido or 0 }}"
+                                        data-condominio="{{ receita.condominio_devido or 0 }}"
+                                        data-desconto="{{ receita.desconto_multa or 0 }}"
+                                        data-total="{{ receita.valor_total_devido or 0 }}"
+                                        onclick="abrirModalReceber(this.dataset)">
                                     ✓ Receber
                                 </button>
                                 {% endif %}
@@ -208,24 +213,54 @@
 
 <!-- Modal Recebimento -->
 <div id="modal-receber" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
-    <div class="card" style="max-width: 400px; width: 90%; margin: 0;">
+    <div class="card" style="max-width: 480px; width: 95%; margin: 0;">
         <div class="card-header">
             <h3 class="card-title">💰 Confirmar Recebimento</h3>
         </div>
         <form id="form-receber" method="POST" action="">
             <div style="padding: var(--spacing-md);">
                 <p style="color: var(--text-secondary); margin-bottom: var(--spacing-md);">
-                    Informe o valor efetivamente recebido.
+                    Ajuste os valores se necessário e confirme o recebimento.
                 </p>
-                <div class="form-group">
-                    <label class="form-label">Valor Devido</label>
-                    <input type="text" id="receber-valor-devido" class="form-control" readonly
-                           style="color: var(--text-muted); background: var(--bg-secondary);">
+
+                <!-- Componentes da receita -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-sm);">
+                    <div class="form-group">
+                        <label class="form-label">Aluguel <small class="text-muted">R$</small></label>
+                        <input type="number" name="aluguel_devido" id="rec-aluguel" class="form-control"
+                               step="0.01" min="0" oninput="recalcularTotalReceber()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">IPTU <small class="text-muted">R$</small></label>
+                        <input type="number" name="iptu_devido" id="rec-iptu" class="form-control"
+                               step="0.01" min="0" oninput="recalcularTotalReceber()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Condomínio <small class="text-muted">R$</small></label>
+                        <input type="number" name="condominio_devido" id="rec-condominio" class="form-control"
+                               step="0.01" min="0" oninput="recalcularTotalReceber()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Desconto/Multa <small class="text-muted">R$ (−/+)</small></label>
+                        <input type="number" name="desconto_multa" id="rec-desconto" class="form-control"
+                               step="0.01" oninput="recalcularTotalReceber()">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Valor Recebido *</label>
-                    <input type="number" name="valor_recebido" id="receber-valor" class="form-control"
-                           step="0.01" min="0" required>
+
+                <div style="border-top: 1px solid var(--border-color); margin: var(--spacing-sm) 0;"></div>
+
+                <!-- Total e Valor Recebido -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-sm);">
+                    <div class="form-group">
+                        <label class="form-label">Total Calculado</label>
+                        <input type="text" id="rec-total" class="form-control" readonly
+                               style="color: var(--text-muted); background: var(--bg-secondary);">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Valor Recebido <small class="text-muted">R$</small> *</label>
+                        <input type="number" name="valor_recebido" id="rec-valor-recebido" class="form-control"
+                               step="0.01" min="0" required>
+                    </div>
                 </div>
             </div>
             <div style="padding: var(--spacing-md); border-top: 1px solid var(--border-color); display: flex; gap: var(--spacing-sm); justify-content: flex-end;">
@@ -241,13 +276,32 @@
 </div>
 
 <script>
-function abrirModalReceber(id, valorDevido) {
-    const valor = parseFloat(valorDevido) || 0;
-    document.getElementById('form-receber').action = '/receitas/' + id + '/receber';
-    document.getElementById('receber-valor-devido').value = 'R$ ' + valor.toFixed(2).replace('.', ',');
-    document.getElementById('receber-valor').value = valor.toFixed(2);
+function abrirModalReceber(data) {
+    const aluguel    = parseFloat(data.aluguel)   || 0;
+    const iptu       = parseFloat(data.iptu)       || 0;
+    const condominio = parseFloat(data.condominio) || 0;
+    const desconto   = parseFloat(data.desconto)   || 0;
+    const total      = parseFloat(data.total)      || 0;
+
+    document.getElementById('form-receber').action = '/receitas/' + data.id + '/receber';
+    document.getElementById('rec-aluguel').value        = aluguel.toFixed(2);
+    document.getElementById('rec-iptu').value           = iptu.toFixed(2);
+    document.getElementById('rec-condominio').value     = condominio.toFixed(2);
+    document.getElementById('rec-desconto').value       = desconto.toFixed(2);
+    document.getElementById('rec-total').value          = 'R$ ' + total.toFixed(2).replace('.', ',');
+    document.getElementById('rec-valor-recebido').value = total.toFixed(2);
     document.getElementById('modal-receber').style.display = 'flex';
-    document.getElementById('receber-valor').select();
+    document.getElementById('rec-valor-recebido').select();
+}
+
+function recalcularTotalReceber() {
+    const aluguel    = parseFloat(document.getElementById('rec-aluguel').value)    || 0;
+    const iptu       = parseFloat(document.getElementById('rec-iptu').value)       || 0;
+    const condominio = parseFloat(document.getElementById('rec-condominio').value) || 0;
+    const desconto   = parseFloat(document.getElementById('rec-desconto').value)   || 0;
+    const total = aluguel + iptu + condominio + desconto;
+    document.getElementById('rec-total').value          = 'R$ ' + total.toFixed(2).replace('.', ',');
+    document.getElementById('rec-valor-recebido').value = total.toFixed(2);
 }
 </script>
 {% endblock %}

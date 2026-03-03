@@ -4,12 +4,11 @@
 
 {% block extra_css %}
 <style>
-    /* Separa visualmente o rótulo do campo anterior:
-       rótulo fica próximo do seu próprio campo (abaixo),
-       e distante do campo acima */
+    /* Rótulo colado ao seu campo e separado do campo anterior */
     .card-body .form-label {
         display: block;
-        margin-top: 0.75rem;
+        margin-top: 1.25rem;
+        margin-bottom: 2px;
     }
 </style>
 {% endblock %}
@@ -115,13 +114,10 @@
                                        value="{{ imovel.data_aquisicao if imovel else '' }}">
                             </div>
                             <div class="col-md-3 mb-4">
-                                <label for="valor_mercado" class="form-label">Valor de Mercado</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">R$</span>
-                                    <input type="number" class="form-control" id="valor_mercado" name="valor_mercado"
-                                           step="0.01" min="0"
-                                           value="{{ imovel.valor_mercado if imovel and imovel.valor_mercado else '' }}">
-                                </div>
+                                <label for="valor_mercado" class="form-label">Valor de Mercado <small class="text-muted">R$</small></label>
+                                <input type="number" class="form-control" id="valor_mercado" name="valor_mercado"
+                                       step="0.01" min="0"
+                                       value="{{ imovel.valor_mercado if imovel and imovel.valor_mercado else '' }}">
                             </div>
                         </div>
                         <div class="row">
@@ -162,33 +158,24 @@
                         </div>
                         <div class="row">
                             <div class="col-md-4 mb-4">
-                                <label for="aluguel_pretendido" class="form-label">Aluguel Pretendido</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">R$</span>
-                                    <input type="number" class="form-control" id="aluguel_pretendido" name="aluguel_pretendido"
-                                           step="0.01" min="0"
-                                           value="{{ imovel.aluguel_pretendido if imovel and imovel.aluguel_pretendido else '' }}">
-                                </div>
+                                <label for="aluguel_pretendido" class="form-label">Aluguel Pretendido <small class="text-muted">R$</small></label>
+                                <input type="number" class="form-control" id="aluguel_pretendido" name="aluguel_pretendido"
+                                       step="0.01" min="0"
+                                       value="{{ imovel.aluguel_pretendido if imovel and imovel.aluguel_pretendido else '' }}">
                             </div>
                             <div class="col-md-4 mb-4">
-                                <label for="condominio_inquilino" class="form-label">Condomínio Inquilino <small class="text-muted">— despesas ordinárias</small></label>
-                                <div class="input-group">
-                                    <span class="input-group-text">R$</span>
-                                    <input type="number" class="form-control" id="condominio_inquilino" name="condominio_inquilino"
-                                           step="0.01" min="0"
-                                           value="{{ imovel.condominio_inquilino if imovel and imovel.condominio_inquilino else '' }}">
-                                </div>
+                                <label for="condominio_inquilino" class="form-label">Condomínio Inquilino <small class="text-muted">R$ — despesas ordinárias</small></label>
+                                <input type="number" class="form-control" id="condominio_inquilino" name="condominio_inquilino"
+                                       step="0.01" min="0"
+                                       value="{{ imovel.condominio_inquilino if imovel and imovel.condominio_inquilino else '' }}">
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-4 mb-4">
-                                <label for="condominio_total" class="form-label">Condomínio Total <small class="text-muted">— ordinárias + extraordinárias</small></label>
-                                <div class="input-group">
-                                    <span class="input-group-text">R$</span>
-                                    <input type="number" class="form-control" id="condominio_total" name="condominio_total"
-                                           step="0.01" min="0"
-                                           value="{{ imovel.condominio_total if imovel and imovel.condominio_total else '' }}">
-                                </div>
+                                <label for="condominio_total" class="form-label">Condomínio Total <small class="text-muted">R$ — ordinárias + extraordinárias</small></label>
+                                <input type="number" class="form-control" id="condominio_total" name="condominio_total"
+                                       step="0.01" min="0"
+                                       value="{{ imovel.condominio_total if imovel and imovel.condominio_total else '' }}">
                             </div>
                             <div class="col-md-4 mb-4">
                                 <label for="dia_venc_condominio" class="form-label">Dia Venc. Condomínio</label>
@@ -199,13 +186,10 @@
                         </div>
                         <div class="row">
                             <div class="col-md-4 mb-4">
-                                <label for="valor_iptu_anual" class="form-label">IPTU Anual</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">R$</span>
-                                    <input type="number" class="form-control" id="valor_iptu_anual" name="valor_iptu_anual"
-                                           step="0.01" min="0"
-                                           value="{{ imovel.valor_iptu_anual if imovel and imovel.valor_iptu_anual else '' }}">
-                                </div>
+                                <label for="valor_iptu_anual" class="form-label">IPTU Anual <small class="text-muted">R$</small></label>
+                                <input type="number" class="form-control" id="valor_iptu_anual" name="valor_iptu_anual"
+                                       step="0.01" min="0"
+                                       value="{{ imovel.valor_iptu_anual if imovel and imovel.valor_iptu_anual else '' }}">
                             </div>
                             <div class="col-md-4 mb-4">
                                 <label for="forma_pagamento_iptu" class="form-label">Forma Pagamento IPTU</label>

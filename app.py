@@ -179,6 +179,22 @@ def formatar_data(data):
     return data
 
 
+@app.template_filter('formatar_mes')
+def formatar_mes(data):
+    """Formata mês de referência como MM/YYYY (sem o dia)."""
+    if not data:
+        return ""
+    if isinstance(data, str):
+        try:
+            dt = datetime.strptime(data, '%Y-%m-%d')
+            return dt.strftime('%m/%Y')
+        except:
+            return data
+    if isinstance(data, (date, datetime)):
+        return data.strftime('%m/%Y')
+    return data
+
+
 @app.template_filter('status_badge')
 def status_badge(status):
     """Retorna classe CSS para badge de status."""
@@ -1439,23 +1455,22 @@ def listar_receitas():
     """Lista todas as receitas."""
     status = request.args.get('status', '')
     
-    if status == 'pendente':
-        receitas = db.get_receitas_pendentes()
-    else:
-        receitas = db.execute_query("""
-            SELECT r.*,
-                   c.valor_aluguel,
-                   COALESCE(i_c.endereco_completo, i_r.endereco_completo, '-') as imovel_endereco,
-                   COALESCE(p.nome_completo, pr.nome, '-') as inquilino_nome
-            FROM receitas r
-            LEFT JOIN contratos     c   ON r.id_contrato     = c.id
-            LEFT JOIN imoveis       i_c ON c.id_imovel       = i_c.id
-            LEFT JOIN imoveis       i_r ON r.id_imovel       = i_r.id
-            LEFT JOIN pessoas       p   ON c.id_inquilino    = p.id
-            LEFT JOIN proprietarios pr  ON r.id_proprietario = pr.id
-            ORDER BY r.vencimento_previsto DESC
-            LIMIT 100
-        """)
+    where_clause = "WHERE r.status IN ('Pendente', 'Atrasado')" if status == 'pendente' else ""
+    receitas = db.execute_query(f"""
+        SELECT r.*,
+               c.valor_aluguel,
+               COALESCE(i_c.endereco_completo, i_r.endereco_completo, '-') as imovel_endereco,
+               COALESCE(p.nome_completo, pr.nome, '-') as inquilino_nome
+        FROM receitas r
+        LEFT JOIN contratos     c   ON r.id_contrato     = c.id
+        LEFT JOIN imoveis       i_c ON c.id_imovel       = i_c.id
+        LEFT JOIN imoveis       i_r ON r.id_imovel       = i_r.id
+        LEFT JOIN pessoas       p   ON c.id_inquilino    = p.id
+        LEFT JOIN proprietarios pr  ON r.id_proprietario = pr.id
+        {where_clause}
+        ORDER BY r.vencimento_previsto DESC
+        LIMIT 200
+    """)
     
     return render_template('receitas/listar.html', receitas=receitas, status=status, config=app.config)
 
@@ -1777,29 +1792,33 @@ def excluir_receita(id):
 @app.route('/receitas/<int:id>/receber', methods=['POST'])
 @login_required
 def receber_receita(id):
-    """Marca uma receita como recebida com o valor informado pelo usuário."""
+    """Marca uma receita como recebida, permitindo ajuste dos componentes."""
     try:
         receita = db.get_by_id('receitas', id)
         if not receita:
             flash('Receita não encontrada.', 'danger')
             return redirect(url_for('listar_receitas'))
 
-        # Obter valor recebido do formulário
-        valor_recebido_str = request.form.get('valor_recebido', '')
-        try:
-            valor_recebido = float(valor_recebido_str) if valor_recebido_str else receita['valor_total_devido']
-        except (ValueError, TypeError):
-            valor_recebido = receita['valor_total_devido']
+        def to_float(field, fallback):
+            try:
+                v = request.form.get(field, '')
+                return float(v) if v != '' else fallback
+            except (ValueError, TypeError):
+                return fallback
 
-        # Incluir todos os campos que o trigger precisa para evitar erro de NULL
+        aluguel    = to_float('aluguel_devido',    receita['aluguel_devido']    or 0)
+        iptu       = to_float('iptu_devido',       receita['iptu_devido']       or 0)
+        condominio = to_float('condominio_devido', receita['condominio_devido'] or 0)
+        desconto   = to_float('desconto_multa',    receita['desconto_multa']    or 0)
+        valor_recebido = to_float('valor_recebido', receita['valor_total_devido'] or 0)
+
         dados = {
-            'aluguel_devido': receita['aluguel_devido'] or 0,
-            'condominio_devido': receita['condominio_devido'] or 0,
-            'iptu_devido': receita['iptu_devido'] or 0,
-            'desconto_multa': receita['desconto_multa'] or 0,
-            'valor_total_devido': receita['valor_total_devido'],
-            'valor_recebido': valor_recebido,
-            'data_recebimento': date.today().strftime('%Y-%m-%d'),
+            'aluguel_devido':    aluguel,
+            'condominio_devido': condominio,
+            'iptu_devido':       iptu,
+            'desconto_multa':    desconto,
+            'valor_recebido':    valor_recebido,
+            'data_recebimento':  date.today().strftime('%Y-%m-%d'),
             'status': 'Recebido'
         }
 
