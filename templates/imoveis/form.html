@@ -2,6 +2,18 @@
 
 {% block title %}{{ 'Editar Imóvel' if imovel else 'Novo Imóvel' }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Separa visualmente o rótulo do campo anterior:
+       rótulo fica próximo do seu próprio campo (abaixo),
+       e distante do campo acima */
+    .card-body .form-label {
+        display: block;
+        margin-top: 0.75rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="row">
@@ -22,14 +34,13 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-8 mb-3">
-                                <label for="endereco_completo" class="form-label">Endereço Completo *</label>
+                            <div class="col-md-8 mb-4">
+                                <label for="endereco_completo" class="form-label">Endereço Completo * <small class="text-muted">— Ex: Rua das Flores, 123, Apto 101, Centro</small></label>
                                 <input type="text" class="form-control" id="endereco_completo" name="endereco_completo"
                                        value="{{ imovel.endereco_completo if imovel else '' }}"
                                        placeholder="Rua, número, complemento, bairro" required>
-                                <small class="text-muted">Ex: Rua das Flores, 123, Apto 101, Centro</small>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-4 mb-4">
                                 <label for="proprietario" class="form-label">Proprietário</label>
                                 <select class="form-select" id="proprietario" name="proprietario">
                                     <option value="">Selecione...</option>
@@ -42,12 +53,12 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-4 mb-4">
                                 <label for="cidade" class="form-label">Cidade</label>
                                 <input type="text" class="form-control" id="cidade" name="cidade"
                                        value="{{ imovel.cidade if imovel else 'Campo Grande' }}">
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-4 mb-4">
                                 <label for="estado" class="form-label">Estado</label>
                                 <select class="form-select" id="estado" name="estado">
                                     <option value="MS" {{ 'selected' if not imovel or imovel.estado == 'MS' else '' }}>MS</option>
@@ -79,31 +90,31 @@
                                     <option value="TO" {{ 'selected' if imovel and imovel.estado == 'TO' else '' }}>TO</option>
                                 </select>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-4 mb-4">
                                 <label for="cep" class="form-label">CEP</label>
                                 <input type="text" class="form-control" id="cep" name="cep"
                                        value="{{ imovel.cep if imovel else '' }}" placeholder="00000-000">
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-3 mb-4">
                                 <label for="inscricao_imobiliaria" class="form-label">Inscrição Municipal</label>
                                 <input type="text" class="form-control" id="inscricao_imobiliaria" name="inscricao_imobiliaria"
                                        value="{{ imovel.inscricao_imobiliaria if imovel else '' }}"
                                        placeholder="Inscrição imobiliária">
                             </div>
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-3 mb-4">
                                 <label for="matricula" class="form-label">Matrícula</label>
                                 <input type="text" class="form-control" id="matricula" name="matricula"
                                        value="{{ imovel.matricula if imovel else '' }}"
                                        placeholder="Registro no cartório">
                             </div>
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-3 mb-4">
                                 <label for="data_aquisicao" class="form-label">Data de Aquisição</label>
                                 <input type="date" class="form-control" id="data_aquisicao" name="data_aquisicao"
                                        value="{{ imovel.data_aquisicao if imovel else '' }}">
                             </div>
-                            <div class="col-md-3 mb-3">
+                            <div class="col-md-3 mb-4">
                                 <label for="valor_mercado" class="form-label">Valor de Mercado</label>
                                 <div class="input-group">
                                     <span class="input-group-text">R$</span>
@@ -114,12 +125,11 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-12 mb-3">
-                                <label for="tipo_imovel" class="form-label">Descrição do Imóvel *</label>
+                            <div class="col-md-12 mb-4">
+                                <label for="tipo_imovel" class="form-label">Descrição do Imóvel * <small class="text-muted">— Ex: Casa com 3 quartos, 2 banheiros, sala, cozinha. Bom estado de conservação.</small></label>
                                 <textarea class="form-control" id="tipo_imovel" name="tipo_imovel" rows="3"
                                           placeholder="Descreva o imóvel: tipo, quantidade de quartos, banheiros, estado de conservação, etc."
                                           required>{{ imovel.tipo_imovel if imovel else '' }}</textarea>
-                                <small class="text-muted">Ex: Casa com 3 quartos, 2 banheiros, sala, cozinha, área de serviço. Bom estado de conservação.</small>
                             </div>
                         </div>
 
@@ -130,13 +140,13 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6 mb-4">
                                 <label for="numero_hidrometro" class="form-label">Número do Hidrômetro</label>
                                 <input type="text" class="form-control" id="numero_hidrometro" name="numero_hidrometro"
                                        value="{{ imovel.numero_hidrometro if imovel else '' }}"
                                        placeholder="Número do medidor de água">
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6 mb-4">
                                 <label for="numero_relogio_energia" class="form-label">Número do Relógio de Energia</label>
                                 <input type="text" class="form-control" id="numero_relogio_energia" name="numero_relogio_energia"
                                        value="{{ imovel.numero_relogio_energia if imovel else '' }}"
@@ -151,7 +161,7 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-4 mb-4">
                                 <label for="aluguel_pretendido" class="form-label">Aluguel Pretendido</label>
                                 <div class="input-group">
                                     <span class="input-group-text">R$</span>
@@ -160,29 +170,27 @@
                                            value="{{ imovel.aluguel_pretendido if imovel and imovel.aluguel_pretendido else '' }}">
                                 </div>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="condominio_inquilino" class="form-label">Condomínio Inquilino</label>
+                            <div class="col-md-4 mb-4">
+                                <label for="condominio_inquilino" class="form-label">Condomínio Inquilino <small class="text-muted">— despesas ordinárias</small></label>
                                 <div class="input-group">
                                     <span class="input-group-text">R$</span>
                                     <input type="number" class="form-control" id="condominio_inquilino" name="condominio_inquilino"
                                            step="0.01" min="0"
                                            value="{{ imovel.condominio_inquilino if imovel and imovel.condominio_inquilino else '' }}">
                                 </div>
-                                <small class="text-muted">Despesas ordinárias (valor cobrado do inquilino)</small>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label for="condominio_total" class="form-label">Condomínio Total</label>
+                            <div class="col-md-4 mb-4">
+                                <label for="condominio_total" class="form-label">Condomínio Total <small class="text-muted">— ordinárias + extraordinárias</small></label>
                                 <div class="input-group">
                                     <span class="input-group-text">R$</span>
                                     <input type="number" class="form-control" id="condominio_total" name="condominio_total"
                                            step="0.01" min="0"
                                            value="{{ imovel.condominio_total if imovel and imovel.condominio_total else '' }}">
                                 </div>
-                                <small class="text-muted">Ordinárias + extraordinárias (valor da despesa)</small>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-4 mb-4">
                                 <label for="dia_venc_condominio" class="form-label">Dia Venc. Condomínio</label>
                                 <input type="number" class="form-control" id="dia_venc_condominio" name="dia_venc_condominio"
                                        min="1" max="31" placeholder="1-31"
@@ -190,7 +198,7 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-4 mb-4">
                                 <label for="valor_iptu_anual" class="form-label">IPTU Anual</label>
                                 <div class="input-group">
                                     <span class="input-group-text">R$</span>
@@ -199,7 +207,7 @@
                                            value="{{ imovel.valor_iptu_anual if imovel and imovel.valor_iptu_anual else '' }}">
                                 </div>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-4 mb-4">
                                 <label for="forma_pagamento_iptu" class="form-label">Forma Pagamento IPTU</label>
                                 <select class="form-select" id="forma_pagamento_iptu" name="forma_pagamento_iptu">
                                     <option value="Anual" {{ 'selected' if not imovel or imovel.forma_pagamento_iptu == 'Anual' else '' }}>Anual</option>
@@ -215,7 +223,8 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-12 mb-3">
+                            <div class="col-md-12 mb-4">
+                                <label for="observacoes" class="form-label">Observações</label>
                                 <textarea class="form-control" id="observacoes" name="observacoes" rows="3"
                                           placeholder="Observações adicionais sobre o imóvel">{{ imovel.observacoes if imovel else '' }}</textarea>
                             </div>

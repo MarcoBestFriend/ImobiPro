@@ -242,9 +242,10 @@
 
 <script>
 function abrirModalReceber(id, valorDevido) {
+    const valor = parseFloat(valorDevido) || 0;
     document.getElementById('form-receber').action = '/receitas/' + id + '/receber';
-    document.getElementById('receber-valor-devido').value = 'R$ ' + valorDevido.toFixed(2).replace('.', ',');
-    document.getElementById('receber-valor').value = valorDevido.toFixed(2);
+    document.getElementById('receber-valor-devido').value = 'R$ ' + valor.toFixed(2).replace('.', ',');
+    document.getElementById('receber-valor').value = valor.toFixed(2);
     document.getElementById('modal-receber').style.display = 'flex';
     document.getElementById('receber-valor').select();
 }

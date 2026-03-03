@@ -284,7 +284,7 @@ ImobiPro/
 
 **vw_contratos_completos**: Contratos + imóveis + pessoas
 **vw_despesas_pendentes**: Despesas não pagas + situação
-**vw_receitas_pendentes**: Receitas não recebidas + situação
+**vw_receitas_pendentes**: Receitas pendentes com LEFT JOINs — suporta receitas sem contrato (mostra proprietário ou inquilino, tipo_receita, imóvel via contrato ou direto)
 
 ---
 
@@ -406,10 +406,10 @@ POST /despesas/gerar-condominio-mensal → Gera condomínio do mês
 
 ### Receitas
 ```
-GET  /receitas                      → Lista (filtros + estatísticas)
-GET  /receitas/nova                 → Form cadastro
+GET  /receitas                      → Lista com badge de tipo (Aluguel/Empréstimo/Outros)
+GET  /receitas/nova                 → Form cadastro (tipo seleciona contrato ou proprietário+imóvel)
 POST /receitas/nova                 → Processar
-GET  /receitas/<id>                 → Consulta detalhada (composição valor, imóvel, inquilino, recebimento)
+GET  /receitas/<id>                 → Consulta detalhada (composição valor, origem, recebimento)
 GET  /receitas/<id>/editar          → Form editar
 POST /receitas/<id>/editar          → Processar
 POST /receitas/<id>/excluir         → Excluir
@@ -471,7 +471,7 @@ GET  /relatorios/fluxo-caixa/excel            → Fluxo de caixa por proprietár
 
 ---
 
-## ✅ Estado Atual (18/02/2026)
+## ✅ Estado Atual (20/02/2026)
 
 ### Dados Reais Importados
 - 29 imóveis (dados reais do arquivo imoveis2026.xlsx)
@@ -500,9 +500,9 @@ GET  /relatorios/fluxo-caixa/excel            → Fluxo de caixa por proprietár
 - ✅ **Relatório de Imóveis Desocupados** com exportação Excel
 - ✅ **Relatório de Cobranças do Mês** (usa condominio_inquilino)
 - ✅ **Relatório de Contratos** (Excel direto)
-- ✅ **Relatório de Fluxo de Caixa** por proprietário (receitas/despesas pagas, inclui empréstimos)
+- ✅ **Relatório de Fluxo de Caixa** por proprietário (8 colunas: receita, IPTU, condomínio, outras despesas, saldo, descrições)
 - ✅ **Tabela de proprietários** (Marco, Beatriz, Gilma, Antonio, Marco e Bia)
-- ✅ **Receitas sem contrato** (tipo: Empréstimo / Outros, vinculadas ao proprietário)
+- ✅ **Receitas sem contrato** (tipo: Empréstimo / Outros, vinculadas ao proprietário e/ou imóvel)
 - ✅ **Botões de cadastro rápido** de inquilino/fiador no formulário de contratos
 
 ### Planejado (NÃO FAZER SEM PERMISSÃO)
@@ -609,12 +609,16 @@ GET  /relatorios/fluxo-caixa/excel            → Fluxo de caixa por proprietár
 ### Relatório de Fluxo de Caixa
 - **Rota**: `GET /relatorios/fluxo-caixa/excel`
 - **Parâmetros**: `data_inicio` e `data_fim` (obrigatórios)
-- **Colunas**: Proprietário/Endereço, Receita, IPTU, Condomínio, Saldo
-- **Agrupamento**: Por proprietário com subtotais
-- **Receita**: Somente valores **recebidos** no período
-- **Despesas**: Somente valores **pagos** no período (IPTU e Condomínio)
+- **Colunas** (8): Proprietário/Endereço | Receita | IPTU | Condomínio | Outras Despesas | Saldo | Desc. Despesas | Desc. Receitas
+- **Agrupamento**: Por proprietário com subtotais e total geral
+- **Receita**: Somente valores **recebidos** no período (aluguel via contrato)
+- **IPTU / Condomínio**: Somente valores **pagos** no período (negativos)
+- **Outras Despesas**: Manutenção, Reforma, Outros — valores **pagos** no período (negativos)
+- **Saldo**: Receita − IPTU − Condomínio − Outras Despesas
+- **Desc. Despesas**: Nomes das outras despesas do imóvel, separados por ` | `
+- **Desc. Receitas**: Descrição de receitas não-aluguel vinculadas ao imóvel (recebidas no período)
+- **Empréstimos de sócios**: Linha extra por proprietário ("Empréstimos / Outras Receitas") para receitas sem contrato
 - **Inclui**: Imóveis desocupados (podem ter despesas)
-- **Saldo**: Receita - IPTU - Condomínio
 
 ---
 
