@@ -19,13 +19,17 @@ import zipfile
 import io
 import tempfile
 
+from dotenv import load_dotenv
+load_dotenv()  # Carrega variáveis do arquivo .env (ignorado em produção se não existir)
+
 from config import get_config
 from database.db_manager import DatabaseManager
 from utils.backup import SistemaBackup
 
 # Criar aplicação Flask
 app = Flask(__name__)
-app.config.from_object(get_config('development'))
+_env = os.environ.get('FLASK_ENV', 'development')
+app.config.from_object(get_config(_env))
 
 # Inicializar gerenciador de banco de dados
 db = DatabaseManager()
@@ -1720,16 +1724,6 @@ def editar_receita(id):
             form_desconto = request.form.get('desconto_multa')
             form_total = request.form.get('valor_total_devido')
 
-            # Debug - mostrar no terminal
-            print(f"DEBUG editar_receita - Valores do form:")
-            print(f"  aluguel_devido: '{form_aluguel}'")
-            print(f"  condominio_devido: '{form_condominio}'")
-            print(f"  iptu_devido: '{form_iptu}'")
-            print(f"  desconto_multa: '{form_desconto}'")
-            print(f"  valor_total_devido (form): '{form_total}'")
-            print(f"  receita original aluguel: {receita['aluguel_devido']}")
-            print(f"  receita original total: {receita['valor_total_devido']}")
-
             # Calcular valor total
             aluguel = safe_float(form_aluguel, 0)
             condominio = safe_float(form_condominio, 0)
@@ -1751,8 +1745,6 @@ def editar_receita(id):
             # Garantia final: nunca permitir None
             if valor_total is None:
                 valor_total = 0.0
-
-            print(f"DEBUG - Valores calculados: aluguel={aluguel}, total={valor_total}")
 
             dados = {
                 'tipo_receita': request.form.get('tipo_receita', 'Aluguel'),

@@ -48,6 +48,9 @@ class DatabaseManager:
         connection.row_factory = sqlite3.Row
         # Ativar foreign keys (importante para integridade referencial)
         connection.execute("PRAGMA foreign_keys = ON")
+        # WAL mode: permite leituras simultâneas enquanto uma escrita ocorre
+        # Evita travamentos quando dois usuários acessam ao mesmo tempo
+        connection.execute("PRAGMA journal_mode = WAL")
         return connection
     
     def close(self):

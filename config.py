@@ -73,8 +73,10 @@ class ProductionConfig(Config):
     """Configurações para ambiente de produção."""
     DEBUG = False
     TESTING = False
-    # Em produção, usar variáveis de ambiente
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'CHANGE-THIS-IN-PRODUCTION'
+    SECRET_KEY = os.environ.get('SECRET_KEY')  # Obrigatório — sem fallback em produção
+    DATABASE_PATH = os.environ.get('DATABASE_PATH', '/var/www/imobipro/database/imobipro.db')
+    SESSION_COOKIE_SECURE = True   # Cookies só trafegam via HTTPS
+    SESSION_COOKIE_SAMESITE = 'Strict'
 
 
 class TestingConfig(Config):

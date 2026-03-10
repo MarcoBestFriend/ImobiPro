@@ -26,6 +26,13 @@ static/uploads/*
 .DS_Store
 Thumbs.db
 
+# Variáveis de ambiente (contém segredos — NUNCA commitar)
+.env
+
 # Dados sensíveis
 *.xlsx
 !ImobiPro_exemplo.xlsx
+
+# Arquivos WAL do SQLite (gerados automaticamente)
+database/*.db-wal
+database/*.db-shm
