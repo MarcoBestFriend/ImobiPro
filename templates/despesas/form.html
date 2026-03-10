@@ -131,6 +131,14 @@
             <a href="{{ url_for('listar_despesas') }}" class="btn btn-secondary">
                 ← Cancelar
             </a>
+            {% if despesa and despesa.data_pagamento %}
+            <form method="POST" action="{{ url_for('estornar_despesa', id=despesa.id) }}"
+                  onsubmit="return confirm('Deseja retornar esta despesa para Pendente? O valor pago e a data de pagamento serão removidos.')">
+                <button type="submit" class="btn btn-danger">
+                    ↩ Estornar (Retornar para Pendente)
+                </button>
+            </form>
+            {% endif %}
             <button type="submit" class="btn btn-success">
                 ✓ {{ 'Atualizar' if despesa else 'Cadastrar' }} Despesa
             </button>

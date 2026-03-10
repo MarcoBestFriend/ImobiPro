@@ -399,6 +399,7 @@ GET  /despesas/<id>/editar          → Form editar
 POST /despesas/<id>/editar          → Processar
 POST /despesas/<id>/excluir         → Excluir
 POST /despesas/<id>/pagar           → Marcar como paga (atalho)
+POST /despesas/<id>/estornar        → Retornar despesa paga para Pendente (zera valor_pago e data_pagamento)
 POST /despesas/gerar-iptu-anual     → Gera IPTU anual (imóveis com pagamento anual)
 POST /despesas/gerar-iptu-mensal    → Gera IPTU mensal (imóveis com pagamento mensal, valor ÷ 12)
 POST /despesas/gerar-condominio-mensal → Gera condomínio do mês
@@ -483,7 +484,7 @@ GET  /relatorios/fluxo-caixa/excel            → Fluxo de caixa por proprietár
 - ✅ CRUD imóveis (listar, novo, editar, excluir, visualizar)
 - ✅ CRUD pessoas (listar, novo, editar, excluir, **visualizar**) - consulta com contratos relacionados
 - ✅ CRUD contratos (listar, novo, editar, excluir, **visualizar**) - consulta com receitas, imóvel, inquilino, fiador
-- ✅ CRUD despesas (listar, novo, editar, excluir, pagar) - **status "Atrasada" automático**
+- ✅ CRUD despesas (listar, novo, editar, excluir, pagar, **estornar**) - **status "Atrasada" automático** — estorno zera valor_pago e data_pagamento
 - ✅ CRUD receitas (listar, novo, editar, excluir, receber, **visualizar**) - recebimento com valor via modal
 - ✅ **Lançamento automático IPTU anual** (apenas imóveis com pagamento anual)
 - ✅ **Lançamento automático IPTU mensal** (imóveis com pagamento mensal, valor ÷ 12)
@@ -500,7 +501,7 @@ GET  /relatorios/fluxo-caixa/excel            → Fluxo de caixa por proprietár
 - ✅ **Relatório de Imóveis Desocupados** com exportação Excel
 - ✅ **Relatório de Cobranças do Mês** (usa condominio_inquilino)
 - ✅ **Relatório de Contratos** (Excel direto)
-- ✅ **Relatório de Fluxo de Caixa** por proprietário (8 colunas: receita, IPTU, condomínio, outras despesas, saldo, descrições)
+- ✅ **Relatório de Fluxo de Caixa** por proprietário (9 colunas: aluguel, outras receitas, IPTU, condomínio, outras despesas, saldo, descrições)
 - ✅ **Tabela de proprietários** (Marco, Beatriz, Gilma, Antonio, Marco e Bia)
 - ✅ **Receitas sem contrato** (tipo: Empréstimo / Outros, vinculadas ao proprietário e/ou imóvel)
 - ✅ **Botões de cadastro rápido** de inquilino/fiador no formulário de contratos
@@ -609,15 +610,15 @@ GET  /relatorios/fluxo-caixa/excel            → Fluxo de caixa por proprietár
 ### Relatório de Fluxo de Caixa
 - **Rota**: `GET /relatorios/fluxo-caixa/excel`
 - **Parâmetros**: `data_inicio` e `data_fim` (obrigatórios)
-- **Colunas** (8): Proprietário/Endereço | Receita | IPTU | Condomínio | Outras Despesas | Saldo | Desc. Despesas | Desc. Receitas
+- **Colunas** (9): Proprietário/Endereço | Aluguel | Outras Receitas | IPTU | Condomínio | Outras Despesas | Saldo | Desc. Despesas | Desc. Receitas
 - **Agrupamento**: Por proprietário com subtotais e total geral
-- **Receita**: Somente valores **recebidos** no período (aluguel via contrato)
+- **Aluguel**: Somente valores **recebidos** no período (via contrato)
+- **Outras Receitas**: Empréstimos/Outros **recebidos** no período vinculados ao imóvel (azul); receitas sem imóvel aparecem como linha extra "Empréstimos / Outras Receitas" por proprietário
 - **IPTU / Condomínio**: Somente valores **pagos** no período (negativos)
 - **Outras Despesas**: Manutenção, Reforma, Outros — valores **pagos** no período (negativos)
-- **Saldo**: Receita − IPTU − Condomínio − Outras Despesas
+- **Saldo**: Aluguel + Outras Receitas − IPTU − Condomínio − Outras Despesas
 - **Desc. Despesas**: Nomes das outras despesas do imóvel, separados por ` | `
-- **Desc. Receitas**: Descrição de receitas não-aluguel vinculadas ao imóvel (recebidas no período)
-- **Empréstimos de sócios**: Linha extra por proprietário ("Empréstimos / Outras Receitas") para receitas sem contrato
+- **Desc. Receitas**: Descrição das receitas extras (observações ou tipo_receita), separadas por ` | `
 - **Inclui**: Imóveis desocupados (podem ter despesas)
 
 ---

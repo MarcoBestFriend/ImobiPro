@@ -1208,6 +1208,32 @@ def excluir_despesa(id):
     return redirect(url_for('listar_despesas'))
 
 
+@app.route('/despesas/<int:id>/estornar', methods=['POST'])
+@login_required
+def estornar_despesa(id):
+    """Retorna uma despesa paga para o status pendente (extorno)."""
+    try:
+        despesa = db.get_by_id('despesas', id)
+        if not despesa:
+            flash('Despesa não encontrada.', 'danger')
+            return redirect(url_for('listar_despesas'))
+
+        dados = {
+            'valor_pago': None,
+            'data_pagamento': None,
+        }
+
+        if db.update('despesas', dados, 'id = ?', (id,)):
+            flash('Despesa retornada para Pendente com sucesso!', 'success')
+        else:
+            flash('Erro ao estornar despesa.', 'danger')
+
+    except Exception as e:
+        flash(f'Erro: {str(e)}', 'danger')
+
+    return redirect(url_for('listar_despesas'))
+
+
 @app.route('/despesas/<int:id>/pagar', methods=['POST'])
 @login_required
 def pagar_despesa(id):
@@ -2743,18 +2769,36 @@ def relatorio_fluxo_caixa_excel():
 
     receitas_por_imovel = {r['id_imovel']: r['total_recebido'] or 0 for r in receitas}
 
-    # Buscar receitas SEM contrato (Empréstimos/Outros) agrupadas por proprietário
-    receitas_extras = db.execute_query("""
-        SELECT pr.nome as proprietario, SUM(r.valor_recebido) as total_recebido
+    # Buscar receitas extras vinculadas a imóvel (Empréstimo/Outros com id_imovel)
+    outras_receitas_imovel_q = db.execute_query("""
+        SELECT id_imovel, SUM(valor_recebido) as total_recebido,
+               GROUP_CONCAT(COALESCE(observacoes, tipo_receita), ' | ') as descricoes
+        FROM receitas
+        WHERE tipo_receita != 'Aluguel'
+          AND id_imovel IS NOT NULL
+          AND data_recebimento IS NOT NULL
+          AND data_recebimento BETWEEN ? AND ?
+        GROUP BY id_imovel
+    """, (data_inicio, data_fim))
+
+    outras_rec_por_imovel = {r['id_imovel']: r['total_recebido'] or 0 for r in outras_receitas_imovel_q}
+    desc_rec_por_imovel   = {r['id_imovel']: r['descricoes']     or '' for r in outras_receitas_imovel_q}
+
+    # Buscar receitas extras SEM imóvel (apenas vinculadas ao proprietário)
+    receitas_extras_prop_q = db.execute_query("""
+        SELECT pr.nome as proprietario, SUM(r.valor_recebido) as total_recebido,
+               GROUP_CONCAT(COALESCE(r.observacoes, r.tipo_receita), ' | ') as descricoes
         FROM receitas r
         JOIN proprietarios pr ON r.id_proprietario = pr.id
         WHERE r.id_contrato IS NULL
+          AND r.id_imovel IS NULL
           AND r.data_recebimento IS NOT NULL
           AND r.data_recebimento BETWEEN ? AND ?
         GROUP BY pr.nome
     """, (data_inicio, data_fim))
 
-    receitas_extras_por_prop = {r['proprietario']: r['total_recebido'] or 0 for r in receitas_extras}
+    receitas_extras_por_prop = {r['proprietario']: r['total_recebido'] or 0 for r in receitas_extras_prop_q}
+    desc_extras_por_prop     = {r['proprietario']: r['descricoes']     or '' for r in receitas_extras_prop_q}
 
     # Buscar despesas de IPTU PAGAS no período
     despesas_iptu = db.execute_query("""
@@ -2795,55 +2839,44 @@ def relatorio_fluxo_caixa_excel():
     outras_desp_por_imovel  = {d['id_imovel']: d['total_pago'] or 0   for d in outras_despesas_q}
     desc_desp_por_imovel    = {d['id_imovel']: d['descricoes'] or ''   for d in outras_despesas_q}
 
-    # Buscar descrições de receitas não-aluguel vinculadas ao imóvel (recebidas no período)
-    receitas_imovel_q = db.execute_query("""
-        SELECT id_imovel,
-               GROUP_CONCAT(COALESCE(observacoes, tipo_receita), ' | ') as descricoes
-        FROM receitas
-        WHERE tipo_receita != 'Aluguel'
-          AND id_imovel IS NOT NULL
-          AND data_recebimento IS NOT NULL
-          AND data_recebimento BETWEEN ? AND ?
-        GROUP BY id_imovel
-    """, (data_inicio, data_fim))
-
-    desc_rec_por_imovel = {r['id_imovel']: r['descricoes'] or '' for r in receitas_imovel_q}
-
     # Agrupar dados por proprietário
     dados_por_proprietario = defaultdict(list)
     for imovel in imoveis:
         proprietario = imovel['proprietario'] or 'Sem Proprietário'
         imovel_id = imovel['id']
 
-        receita       = receitas_por_imovel.get(imovel_id, 0)
-        iptu          = iptu_por_imovel.get(imovel_id, 0)
-        condominio    = cond_por_imovel.get(imovel_id, 0)
-        outras        = outras_desp_por_imovel.get(imovel_id, 0)
-        saldo         = receita - iptu - condominio - outras
+        receita_aluguel = receitas_por_imovel.get(imovel_id, 0)
+        outras_receitas = outras_rec_por_imovel.get(imovel_id, 0)
+        iptu            = iptu_por_imovel.get(imovel_id, 0)
+        condominio      = cond_por_imovel.get(imovel_id, 0)
+        outras          = outras_desp_por_imovel.get(imovel_id, 0)
+        saldo           = receita_aluguel + outras_receitas - iptu - condominio - outras
 
         dados_por_proprietario[proprietario].append({
-            'endereco':       imovel['endereco_completo'],
-            'receita':        receita,
-            'iptu':           -iptu     if iptu     else 0,
-            'condominio':     -condominio if condominio else 0,
-            'outras_despesas': -outras  if outras   else 0,
-            'saldo':          saldo,
-            'desc_despesas':  desc_desp_por_imovel.get(imovel_id, ''),
-            'desc_receitas':  desc_rec_por_imovel.get(imovel_id, ''),
+            'endereco':        imovel['endereco_completo'],
+            'receita_aluguel': receita_aluguel,
+            'outras_receitas': outras_receitas,
+            'iptu':            -iptu        if iptu        else 0,
+            'condominio':      -condominio  if condominio  else 0,
+            'outras_despesas': -outras      if outras      else 0,
+            'saldo':           saldo,
+            'desc_despesas':   desc_desp_por_imovel.get(imovel_id, ''),
+            'desc_receitas':   desc_rec_por_imovel.get(imovel_id, ''),
         })
 
-    # Adicionar receitas extras (Empréstimos/Outros) por proprietário
+    # Adicionar receitas extras SEM imóvel (Empréstimos/Outros por proprietário)
     for prop_nome, total_extra in receitas_extras_por_prop.items():
         if total_extra > 0:
             dados_por_proprietario[prop_nome].append({
                 'endereco':        '   Empréstimos / Outras Receitas',
-                'receita':         total_extra,
+                'receita_aluguel': 0,
+                'outras_receitas': total_extra,
                 'iptu':            0,
                 'condominio':      0,
                 'outras_despesas': 0,
                 'saldo':           total_extra,
                 'desc_despesas':   '',
-                'desc_receitas':   '',
+                'desc_receitas':   desc_extras_por_prop.get(prop_nome, ''),
             })
 
     # Criar Excel
@@ -2873,25 +2906,25 @@ def relatorio_fluxo_caixa_excel():
     data_fim_fmt = datetime.strptime(data_fim, '%Y-%m-%d').strftime('%d/%m/%Y')
 
     # Título
-    ws.merge_cells('A1:H1')
+    ws.merge_cells('A1:I1')
     ws['A1'] = "FLUXO DE CAIXA POR PROPRIETÁRIO"
     ws['A1'].font = Font(bold=True, size=14)
     ws['A1'].alignment = Alignment(horizontal="center")
 
     # Período
-    ws.merge_cells('A2:H2')
+    ws.merge_cells('A2:I2')
     ws['A2'] = f"Período: {data_inicio_fmt} a {data_fim_fmt}"
     ws['A2'].font = Font(size=11, italic=True)
     ws['A2'].alignment = Alignment(horizontal="center")
 
     # Subtítulo
-    ws.merge_cells('A3:H3')
+    ws.merge_cells('A3:I3')
     ws['A3'] = f"Gerado em {datetime.now().strftime('%d/%m/%Y %H:%M')}"
     ws['A3'].font = Font(size=10, italic=True)
     ws['A3'].alignment = Alignment(horizontal="center")
 
-    # Cabeçalhos (8 colunas)
-    headers = ['Proprietário / Endereço', 'Receita', 'IPTU', 'Condomínio',
+    # Cabeçalhos (9 colunas)
+    headers = ['Proprietário / Endereço', 'Aluguel', 'Outras Receitas', 'IPTU', 'Condomínio',
                'Outras Despesas', 'Saldo', 'Desc. Despesas', 'Desc. Receitas']
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=5, column=col, value=header)
@@ -2902,11 +2935,12 @@ def relatorio_fluxo_caixa_excel():
 
     # Dados
     row_num = 6
-    total_geral_receita        = 0
-    total_geral_iptu           = 0
-    total_geral_condominio     = 0
-    total_geral_outras_despesas = 0
-    total_geral_saldo          = 0
+    total_geral_aluguel          = 0
+    total_geral_outras_receitas  = 0
+    total_geral_iptu             = 0
+    total_geral_condominio       = 0
+    total_geral_outras_despesas  = 0
+    total_geral_saldo            = 0
 
     # Ordenar proprietários
     proprietarios_ordenados = sorted(dados_por_proprietario.keys())
@@ -2915,18 +2949,19 @@ def relatorio_fluxo_caixa_excel():
         imoveis_prop = dados_por_proprietario[proprietario]
 
         # Linha do proprietário
-        ws.merge_cells(f'A{row_num}:H{row_num}')
+        ws.merge_cells(f'A{row_num}:I{row_num}')
         cell = ws.cell(row=row_num, column=1, value=f"📁 {proprietario}")
         cell.fill = proprietario_fill
         cell.font = proprietario_font
         cell.border = border
-        for col in range(2, 9):
+        for col in range(2, 10):
             ws.cell(row=row_num, column=col).fill = proprietario_fill
             ws.cell(row=row_num, column=col).border = border
         row_num += 1
 
         # Imóveis do proprietário
-        subtotal_receita         = 0
+        subtotal_aluguel         = 0
+        subtotal_outras_receitas = 0
         subtotal_iptu            = 0
         subtotal_condominio      = 0
         subtotal_outras_despesas = 0
@@ -2935,47 +2970,54 @@ def relatorio_fluxo_caixa_excel():
         for imovel in imoveis_prop:
             ws.cell(row=row_num, column=1, value=f"   {imovel['endereco']}").border = border
 
-            cell_receita = ws.cell(row=row_num, column=2, value=imovel['receita'])
-            cell_receita.number_format = money_format
-            cell_receita.border = border
+            cell_aluguel = ws.cell(row=row_num, column=2, value=imovel['receita_aluguel'])
+            cell_aluguel.number_format = money_format
+            cell_aluguel.border = border
 
-            cell_iptu = ws.cell(row=row_num, column=3, value=imovel['iptu'])
+            cell_outras_rec = ws.cell(row=row_num, column=3, value=imovel['outras_receitas'])
+            cell_outras_rec.number_format = money_format
+            cell_outras_rec.border = border
+            if imovel['outras_receitas'] > 0:
+                cell_outras_rec.font = Font(color="1565C0")
+
+            cell_iptu = ws.cell(row=row_num, column=4, value=imovel['iptu'])
             cell_iptu.number_format = money_format
             cell_iptu.border = border
             if imovel['iptu'] < 0:
                 cell_iptu.font = Font(color="FF0000")
 
-            cell_cond = ws.cell(row=row_num, column=4, value=imovel['condominio'])
+            cell_cond = ws.cell(row=row_num, column=5, value=imovel['condominio'])
             cell_cond.number_format = money_format
             cell_cond.border = border
             if imovel['condominio'] < 0:
                 cell_cond.font = Font(color="FF0000")
 
-            cell_outras = ws.cell(row=row_num, column=5, value=imovel['outras_despesas'])
+            cell_outras = ws.cell(row=row_num, column=6, value=imovel['outras_despesas'])
             cell_outras.number_format = money_format
             cell_outras.border = border
             if imovel['outras_despesas'] < 0:
                 cell_outras.font = Font(color="FF0000")
 
-            cell_saldo = ws.cell(row=row_num, column=6, value=imovel['saldo'])
+            cell_saldo = ws.cell(row=row_num, column=7, value=imovel['saldo'])
             cell_saldo.number_format = money_format
             cell_saldo.border = border
             if imovel['saldo'] < 0:
                 cell_saldo.font = Font(color="FF0000")
 
-            cell_desc_d = ws.cell(row=row_num, column=7, value=imovel['desc_despesas'])
+            cell_desc_d = ws.cell(row=row_num, column=8, value=imovel['desc_despesas'])
             cell_desc_d.border = border
             cell_desc_d.alignment = Alignment(wrap_text=True, vertical="top")
 
-            cell_desc_r = ws.cell(row=row_num, column=8, value=imovel['desc_receitas'])
+            cell_desc_r = ws.cell(row=row_num, column=9, value=imovel['desc_receitas'])
             cell_desc_r.border = border
             cell_desc_r.alignment = Alignment(wrap_text=True, vertical="top")
 
-            subtotal_receita          += imovel['receita']
-            subtotal_iptu             += imovel['iptu']
-            subtotal_condominio       += imovel['condominio']
-            subtotal_outras_despesas  += imovel['outras_despesas']
-            subtotal_saldo            += imovel['saldo']
+            subtotal_aluguel         += imovel['receita_aluguel']
+            subtotal_outras_receitas += imovel['outras_receitas']
+            subtotal_iptu            += imovel['iptu']
+            subtotal_condominio      += imovel['condominio']
+            subtotal_outras_despesas += imovel['outras_despesas']
+            subtotal_saldo           += imovel['saldo']
 
             row_num += 1
 
@@ -2984,8 +3026,8 @@ def relatorio_fluxo_caixa_excel():
         ws.cell(row=row_num, column=1).fill = subtotal_fill
         ws.cell(row=row_num, column=1).border = border
 
-        for col, valor in enumerate([subtotal_receita, subtotal_iptu, subtotal_condominio,
-                                     subtotal_outras_despesas, subtotal_saldo], 2):
+        for col, valor in enumerate([subtotal_aluguel, subtotal_outras_receitas, subtotal_iptu,
+                                     subtotal_condominio, subtotal_outras_despesas, subtotal_saldo], 2):
             cell = ws.cell(row=row_num, column=col, value=valor)
             cell.number_format = money_format
             cell.font = subtotal_font
@@ -2995,15 +3037,16 @@ def relatorio_fluxo_caixa_excel():
                 cell.font = Font(bold=True, color="FF0000")
 
         # Colunas de descrição: vazias no subtotal
-        for col in [7, 8]:
+        for col in [8, 9]:
             ws.cell(row=row_num, column=col).fill = subtotal_fill
             ws.cell(row=row_num, column=col).border = border
 
-        total_geral_receita          += subtotal_receita
-        total_geral_iptu             += subtotal_iptu
-        total_geral_condominio       += subtotal_condominio
-        total_geral_outras_despesas  += subtotal_outras_despesas
-        total_geral_saldo            += subtotal_saldo
+        total_geral_aluguel         += subtotal_aluguel
+        total_geral_outras_receitas += subtotal_outras_receitas
+        total_geral_iptu            += subtotal_iptu
+        total_geral_condominio      += subtotal_condominio
+        total_geral_outras_despesas += subtotal_outras_despesas
+        total_geral_saldo           += subtotal_saldo
 
         row_num += 2  # Espaço entre proprietários
 
@@ -3012,8 +3055,8 @@ def relatorio_fluxo_caixa_excel():
     ws.cell(row=row_num, column=1).fill = total_fill
     ws.cell(row=row_num, column=1).border = border
 
-    for col, valor in enumerate([total_geral_receita, total_geral_iptu, total_geral_condominio,
-                                  total_geral_outras_despesas, total_geral_saldo], 2):
+    for col, valor in enumerate([total_geral_aluguel, total_geral_outras_receitas, total_geral_iptu,
+                                  total_geral_condominio, total_geral_outras_despesas, total_geral_saldo], 2):
         cell = ws.cell(row=row_num, column=col, value=valor)
         cell.number_format = money_format
         cell.font = total_font
@@ -3023,19 +3066,20 @@ def relatorio_fluxo_caixa_excel():
             cell.font = Font(bold=True, color="FF0000", size=12)
 
     # Colunas de descrição: vazias no total geral
-    for col in [7, 8]:
+    for col in [8, 9]:
         ws.cell(row=row_num, column=col).fill = total_fill
         ws.cell(row=row_num, column=col).border = border
 
     # Ajustar largura das colunas
     ws.column_dimensions['A'].width = 50
-    ws.column_dimensions['B'].width = 18
-    ws.column_dimensions['C'].width = 15
-    ws.column_dimensions['D'].width = 18
-    ws.column_dimensions['E'].width = 18
+    ws.column_dimensions['B'].width = 15
+    ws.column_dimensions['C'].width = 18
+    ws.column_dimensions['D'].width = 12
+    ws.column_dimensions['E'].width = 15
     ws.column_dimensions['F'].width = 18
-    ws.column_dimensions['G'].width = 35
+    ws.column_dimensions['G'].width = 15
     ws.column_dimensions['H'].width = 35
+    ws.column_dimensions['I'].width = 35
 
     # Salvar em memória
     output = io.BytesIO()
